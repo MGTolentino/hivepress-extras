@@ -1,0 +1,558 @@
+/* Contenedor principal */
+.hp-page__content .hp-price-extras-container,
+.hp-page__content .hp-price-extras-container {
+    width: 1100px !important;
+    margin: 20px auto !important;
+    padding: 20px 0;
+    background-color: #ffffff;
+}
+
+/* Contenedor de las tarjetas */
+.hp-page__content .hp-price-extras {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 25px;
+    width: 100% !important;
+}
+
+/* Estructura básica de la tarjeta */
+.hp-price-extra {
+    flex: 0 0 350px !important;
+    width: 350px !important;
+    height: auto !important;
+    min-height: 720px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    transition: box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.hp-price-extra:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Carrusel de imágenes */
+.hp-price-extra__images-carousel {
+    width: 100%;
+    position: relative;
+    background: #f8f8f8;
+}
+
+.carousel-container {
+    position: relative;
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.3s ease;
+    height: 100%;
+}
+
+.carousel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.carousel-arrow:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.carousel-arrow.prev {
+    left: 10px;
+}
+
+.carousel-arrow.next {
+    right: 10px;
+}
+
+/* Contenido de la tarjeta */
+.hp-price-extra__content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.hp-price-extra__name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 15px;
+}
+
+.hp-price-extra__description {
+    flex-grow: 1;
+    margin-bottom: 15px;
+}
+
+.hp-price-extra__description p {
+    position: relative;
+    padding-left: 25px;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.hp-price-extra__description p:before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--hp-primary-color, #3d9970);
+}
+
+.hp-price-extra__type {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+/* Precio y cantidad para extras variables */
+.hp-price-extra__price-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.hp-price-extra__price-container .hp-price-extra__price {
+    margin-bottom: 0;
+}
+
+/* Precio para extras normales */
+.hp-price-extra__price {
+    font-size: 24px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 15px;
+}
+
+/* Estilos del input de cantidad */
+.hp-price-extra__quantity {
+    margin-bottom: 15px;
+}
+
+.hp-price-extra__quantity .variable-quantity-input {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #cbb881;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.hp-price-extra__quantity .variable-quantity-input:focus {
+    outline: none;
+    border-color: #c0ad77;
+}
+
+/* Botón "Ver más" */
+.hp-price-extra__popup-button {
+    background: none;
+    border: none;
+    color: #cbb881;
+    cursor: pointer;
+    padding: 5px 0;
+    margin-bottom: 15px;
+    text-decoration: underline;
+    align-self: flex-start;
+    font-size: 14px;
+}
+
+/* Botón de reserva */
+.hp-price-extra__reserve {
+    position: relative !important;
+    overflow: hidden !important;
+    width: 100%;
+    padding: 12px;
+    background-color: #cbb881;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.hp-price-extra__reserve:hover {
+    background-color: #c0ad77;
+}
+
+/* Estados del botón de reserva */
+.hp-price-extra__reserve .button-content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    transition: transform 0.3s ease !important;
+}
+
+.hp-price-extra__reserve .booking-icon {
+    transition: transform 0.3s ease !important;
+}
+
+.hp-price-extra__reserve .success-icon {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(0) !important;
+    opacity: 0 !important;
+    transition: all 0.3s ease !important;
+}
+
+.hp-price-extra__reserve.success .button-content {
+    transform: translateY(100%) !important;
+    opacity: 0 !important;
+}
+
+.hp-price-extra__reserve.success .success-icon {
+    transform: translate(-50%, -50%) scale(1) !important;
+    opacity: 1 !important;
+}
+
+/* Popup */
+.hp-price-extra__popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    overflow-y: auto;
+}
+
+.hp-price-extra__popup-content {
+    background-color: #fff;
+    width: 90%;
+    max-width: 800px;
+    margin: 40px auto;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.hp-price-extra__popup-header {
+    background-color: #cbb881;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hp-price-extra__popup-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+}
+
+.hp-price-extra__popup-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.hp-price-extra__popup-image {
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+}
+
+.hp-price-extra__popup-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hp-price-extra__popup-info {
+    padding: 20px;
+}
+
+.hp-price-extra__popup-description {
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 20px 0;
+}
+
+/* Columnas en el popup */
+.popup-columns {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.popup-column {
+    flex: 1;
+    min-width: 0;
+    width: 50%;
+}
+
+.popup-column p {
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 25px;
+    word-wrap: break-word;
+}
+
+.popup-column p:before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #cbb881;
+}
+
+.popup-footer {
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+/* Carrusel del popup */
+.popup-carousel {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+}
+
+.popup-carousel-track {
+    display: flex;
+    transition: transform 0.3s ease;
+    height: 100%;
+}
+
+.popup-carousel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+}
+
+.popup-carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.popup-carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.popup-carousel-arrow:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.popup-carousel-arrow.prev {
+    left: 10px;
+}
+
+.popup-carousel-arrow.next {
+    right: 10px;
+}
+
+/* Estados de carga */
+.hp-price-extra.is-uploading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.hp-price-extra.is-uploading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 2;
+}
+
+/* Clases de estado para imágenes */
+.hp-price-extra:not(.has-images) {
+    min-height: auto;
+}
+
+.hp-price-extra.has-images {
+    min-height: 720px;
+}
+
+.hp-price-extra__images-carousel {
+    display: none;
+}
+
+.hp-price-extra.has-images .hp-price-extra__images-carousel {
+    display: block;
+}
+
+/* Indicadores de navegación del carrusel */
+.carousel-indicators {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    z-index: 2;
+}
+
+.carousel-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.carousel-indicator.active {
+    background: #fff;
+}
+
+/* Responsive */
+@media (max-width: 1150px) {
+    .hp-page__content .hp-price-extras-container {
+        width: 95% !important;
+    }
+    
+    .hp-page__content .hp-price-extras {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .hp-price-extra {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 350px !important;
+    }
+
+    .carousel-container {
+        height: 200px;
+    }
+
+    .carousel-arrow {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .popup-carousel {
+        height: 300px;
+    }
+
+    .popup-carousel-arrow {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .hp-price-extra__popup-content {
+        width: 95%;
+        margin: 20px auto;
+    }
+
+    .popup-column {
+        width: 100%;
+    }
+    
+    .popup-columns {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .hp-price-extra__popup-image {
+        height: 200px;
+    }
+}
+
+/* Estilos para asegurar que el contenido del tema no interfiera */
+.hp-template .inner-wrapper-sticky {
+    position: static !important;
+    transform: none !important;
+}
+
+/* Estilos para extras obligatorios */
+.hp-price-extra__reserve[data-state="required"] {
+    background-color: #f4f4f4 !important;
+    color: #333 !important;
+    cursor: default !important;
+    border-color: #ccc !important;
+    pointer-events: none;
+}
+
+.hp-price-extra__reserve[data-state="required"]:hover {
+    background-color: #f4f4f4 !important;
+}
+
+.hp-price-extra__reserve[data-state="required"] .button-content span {
+    font-weight: bold;
+}
+
+.hp-price-extra__reserve[data-state="required"]::after {
+    content: "✓";
+    font-weight: bold;
+    margin-left: 5px;
+}

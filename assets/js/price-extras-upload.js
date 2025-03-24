@@ -42,7 +42,7 @@
                 var maxFiles = $container.find('.hp-field__file').data('max-files');
             
                 if (currentCount >= maxFiles) {
-                    alert('Máximo ' + maxFiles + ' imágenes permitidas');
+                    alert(hppedVars.i18n.maxImagesAllowed.replace('%s', maxFiles));
                     return false;
                 }
             
@@ -77,7 +77,7 @@
             var remainingSlots = maxFiles - currentCount;
 
             if (files.length > remainingSlots) {
-                alert('Solo puede seleccionar ' + remainingSlots + ' imagen(es) más');
+                alert(hppedVars.i18n.selectMoreImages.replace('%s', remainingSlots));
                 return;
             }
 
@@ -104,7 +104,7 @@
             formData.append('listing_id', this.getListingId());
 
             $container.addClass('is-uploading');
-            $container.find('.hp-field__upload-status').text('Subiendo imagen...');
+            $container.find('.hp-field__upload-status').text(hppedVars.i18n.uploadingImage);
 
             $.ajax({
                 url: '/wp-json/price-extras/v1/upload',
@@ -135,7 +135,7 @@
                     statusText: jqXHR.statusText,
                     responseText: jqXHR.responseText
                 });
-                alert('Error al subir el archivo: ' + file.name);
+                alert(hppedVars.i18n.fileUploadError + ' ' + file.name);
             })
             .always(function() {
                 $container.removeClass('is-uploading');
@@ -175,12 +175,12 @@
         
                     self.updateCounter($container);
                 } else {
-                    alert('Error al eliminar la imagen: ' + response.message);
+                    alert(hppedVars.i18n.imageDeleteError + ' ' + response.message);
                 }
             })
             .fail(function(jqXHR, textStatus, errorThrown) {
                 console.error('Delete failed:', textStatus, errorThrown);
-                alert('Error al eliminar la imagen');
+                alert(hppedVars.i18n.generalDeleteError);
             });
         },
 

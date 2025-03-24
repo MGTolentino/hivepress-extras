@@ -4,7 +4,6 @@
 // Exit if accessed directly.
 defined('ABSPATH') || exit;
 
-// Al inicio del archivo functions.php
 if (!function_exists('hpped_debug_log')) {
     function hpped_debug_log($message, $data = null) {
         if (WP_DEBUG) {
@@ -15,6 +14,8 @@ if (!function_exists('hpped_debug_log')) {
         }
     }
 }
+
+require_once dirname(__FILE__) . '/translations.php';
 
 // En el constructor de Attachment
 add_action('init', function() {
@@ -104,7 +105,7 @@ function hpped_custom_block_content() {
                 
                 if ($line_count > 11) {
                     $output .= '<button class="hp-price-extra__popup-button" data-extra-name="' . 
-                              esc_attr($extra['name']) . '">Ver más</button>';
+          esc_attr($extra['name']) . '">' . esc_html__('View more', 'hivepress-price-extras-description') . '</button>';
                 }
                 
                 $output .= '<p class="hp-price-extra__type">' . hpped_get_extra_type($extra['type']) . '</p>';
@@ -123,18 +124,18 @@ function hpped_custom_block_content() {
                 }
 
                 $output .= '<button class="hp-price-extra__reserve" data-extra-name="' . esc_attr($extra['name']) . '" data-state="add">
-                    <span class="button-content">
-                        <svg class="booking-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
-                        </svg>
-                        <span>Add to booking</span>
-                    </span>
-                    <span class="success-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <path d="M20 6L9 17l-5-5"/>
-                        </svg>
-                    </span>
-                </button>';
+                        <span class="button-content">
+                            <svg class="booking-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+                            </svg>
+                            <span>' . esc_html__('Add to booking', 'hivepress-price-extras-description') . '</span>
+                        </span>
+                        <span class="success-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <path d="M20 6L9 17l-5-5"/>
+                            </svg>
+                        </span>
+                    </button>';
                 
                 $output .= '</div>'; // Cierre de content
                 $output .= '</div>'; // Cierre de price-extra
@@ -144,9 +145,10 @@ function hpped_custom_block_content() {
             
             return $output;
         }
-        return '<p>No hay extras de precio con descripción para este listing.</p>';
+        return '<p>' . esc_html__('No price extras with description for this listing.', 'hivepress-price-extras-description') . '</p>';
+
     }
-    return '<p>No se encontró el listing.</p>';
+    return '<p>' . esc_html__('Listing not found.', 'hivepress-price-extras-description') . '</p>';
 }
 
 // Función personalizada para formatear el precio
@@ -168,16 +170,14 @@ function hpped_format_price($price) {
 // Función para obtener el tipo de extra formateado
 function hpped_get_extra_type( $type ) {
     $types = [
-        ''                  => esc_html_x( 'per place per day', 'pricing', 'hivepress-bookings' ),
-        'per_quantity'      => esc_html_x( 'per place', 'pricing', 'hivepress-bookings' ),
-        'per_item'         => esc_html_x( 'per day', 'pricing', 'hivepress-bookings' ),
-        'per_order'        => esc_html_x( 'per booking', 'pricing', 'hivepress-bookings' ),
-        'variable_quantity' => esc_html_x( 'Variable quantity', 'pricing', 'hivepress-bookings' ),
+        ''                  => __('per place per day', 'hivepress-price-extras-description'),
+        'per_quantity'      => __('per place', 'hivepress-price-extras-description'),
+        'per_item'         => __('per day', 'hivepress-price-extras-description'),
+        'per_order'        => __('per booking', 'hivepress-price-extras-description'),
+        'variable_quantity' => __('Variable quantity', 'hivepress-price-extras-description'),
     ];
     return isset($types[$type]) ? $types[$type] : $types[''];
 }
-
-
 
 /**
  * Registrar assets comunes
@@ -190,11 +190,7 @@ function hpped_register_common_assets() {
         'restUrl' => rest_url('price-extras/v1/'),
         'nonce' => wp_create_nonce('wp_rest'),
         'maxFiles' => 5,
-        'i18n' => [
-            'uploadError' => esc_html__('Error uploading image', 'hivepress-extras'),
-            'maxFilesError' => esc_html__('Maximum files allowed:', 'hivepress-extras'),
-            'invalidType' => esc_html__('Invalid file type', 'hivepress-extras'),
-        ]
+        'i18n' => hpped_get_js_translations()
     ];
 }
 

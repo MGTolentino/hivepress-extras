@@ -58,7 +58,7 @@
                     $button.attr('data-state', 'required')
                         .addClass('required-extra')
                         .find('.button-content span')
-                        .text('Required extra');
+                        .text(hppedVars.i18n.requiredExtra);
                 } else {
                     var state = isChecked ? 'remove' : 'add';
                     var text = isChecked ? 'Remover de reserva' : 'Agregar a reserva';
@@ -152,7 +152,7 @@
             isRequired = $input.attr('data-required') === 'true';
             
             if (isRequired) {
-                alert('This is a required extra and cannot be removed.');
+                alert(hppedVars.i18n.requiredExtraCantRemove);
                 return false;
             }
         }
@@ -168,7 +168,7 @@
                 isRequired = $input.attr('data-required') === 'true';
                 
                 if (isRequired) {
-                    alert('This is a required extra and cannot be removed.');
+                    alert(hppedVars.i18n.requiredExtraCantRemove);
                     return false;
                 }
             }
@@ -253,7 +253,7 @@
     }
     
     if (!extraFound) {
-        console.log('No se encontró el extra en el formulario de reserva: ' + extraName);
+        console.log(hppedVars.i18n.noExtraFound + ' ' + extraName);
     }
 }
 
@@ -261,7 +261,7 @@
    $('input[type="file"][multiple]').on('change', function() {
        var maxFiles = $(this).data('max-files') || 5;
        if (this.files.length > maxFiles) {
-           alert('Solo puedes seleccionar hasta ' + maxFiles + ' archivos.');
+        alert(hppedVars.i18n.maxImagesAllowed.replace('%s', maxFiles));
            this.value = '';
            return false;
        }
@@ -434,7 +434,7 @@
                        '<div class="hp-price-extra__popup" id="popup-' + popupId + '">' +
                        '<div class="hp-price-extra__popup-content">' +
                        '<div class="hp-price-extra__popup-header">' +
-                       '<h3>Información detallada del extra</h3>' +
+                       '<h3>' + hppedVars.i18n.detailedInfo + '</h3>' +
                        '<button class="hp-price-extra__popup-close">&times;</button>' +
                        '</div>' +
                        imageHtml +
@@ -454,7 +454,7 @@
                        '<svg class="booking-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
                        '<path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>' +
                        '</svg>' +
-                       '<span>Add to booking</span>' +
+                       '<span>' + hppedVars.i18n.addToBooking + '</span>' +
                        '</span>' +
                        '<span class="success-icon">' +
                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">' +
@@ -567,11 +567,11 @@ function updateVariableQuantityButton($buttons, quantity) {
        if (quantity > 0) {
            $button.attr('data-state', 'remove')
                .find('.button-content span')
-               .text('Remove from booking');
+               .text(hppedVars.i18n.removeFromBooking);
        } else {
            $button.attr('data-state', 'add')
                .find('.button-content span')
-               .text('Add to booking');
+               .text(hppedVars.i18n.addToBooking);
        }
    });
 

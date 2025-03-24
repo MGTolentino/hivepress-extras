@@ -69,9 +69,9 @@ class Multiple_File extends File {
         if (count($this->value) > $this->attributes['data-max-files']) {
             $this->add_errors(
                 sprintf(
-                    esc_html__('Maximum %s files allowed.', 'hivepress-extras'),
-                    $this->attributes['data-max-files']
-                )
+    esc_html__('Maximum %s files allowed.', 'hivepress-price-extras-description'),
+    $this->attributes['data-max-files']
+)
             );
             return false;
         }
@@ -79,7 +79,7 @@ class Multiple_File extends File {
         // Validar cada archivo
         foreach ($this->value as $attachment_id) {
             if (!wp_attachment_is_image($attachment_id)) {
-                $this->add_errors(esc_html__('Invalid image file.', 'hivepress-extras'));
+                $this->add_errors(esc_html__('Invalid image file.', 'hivepress-price-extras-description'));
                 return false;
             }
         }
@@ -135,13 +135,13 @@ class Multiple_File extends File {
         $output .= sprintf(
             '<label for="%s" class="hp-field__upload-button">%s</label>',
             esc_attr($field_id),
-            esc_html__('Select Images', 'hivepress-extras')
+            esc_html__('Select Images', 'hivepress-price-extras-description')
         );
         
         // Texto de límite y contador
         $current_count = !empty($image_ids) ? count($image_ids) : 0;
         $output .= sprintf(
-            '<span class="hp-field__limit-text">*Máximo %d imágenes <span class="hp-field__counter">(%d/%d)</span></span>',
+            '<span class="hp-field__limit-text">' . esc_html__('*Maximum %d images', 'hivepress-price-extras-description') . ' <span class="hp-field__counter">(%d/%d)</span></span>',
             $this->attributes['data-max-files'],
             $current_count,
             $this->attributes['data-max-files']

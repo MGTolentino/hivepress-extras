@@ -67,12 +67,3 @@ add_action('wp', function() {
         );
     }
 });
-
-// Cargar traducciones
-add_action('plugins_loaded', function() {
-    load_plugin_textdomain(
-        'hivepress-price-extras-description', 
-        false, 
-        dirname(plugin_basename(__FILE__)) . '/languages/'
-    );
-});

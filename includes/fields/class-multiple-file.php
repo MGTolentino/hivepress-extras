@@ -56,36 +56,52 @@ class Multiple_File extends File {
     }
 
     /**
-     * Valida el valor del campo.
-     *
-     * @return bool
-     */
-    public function validate() {
-        if (is_null($this->value)) {
-            $this->value = [];
-        }
+ * Valida el valor del campo.
+ *
+ * @return bool
+ */
+public function validate() {
+    if (is_null($this->value)) {
+        $this->value = [];
+    }
 
-        // Validar número máximo de archivos
-        if (count($this->value) > $this->attributes['data-max-files']) {
-            $this->add_errors(
-                sprintf(
-    esc_html__('Maximum %s files allowed.', 'hivepress-price-extras-description'),
-    $this->attributes['data-max-files']
-)
-            );
-            return false;
-        }
-
-        // Validar cada archivo
-        foreach ($this->value as $attachment_id) {
-            if (!wp_attachment_is_image($attachment_id)) {
-                $this->add_errors(esc_html__('Invalid image file.', 'hivepress-price-extras-description'));
-                return false;
+    // Verificar que cada ID es realmente una imagen válida
+    $valid_ids = [];
+    foreach ($this->value as $attachment_id) {
+        if (wp_attachment_is_image($attachment_id)) {
+            // Verificar que el archivo realmente existe
+            $file_path = get_attached_file($attachment_id);
+            if ($file_path && file_exists($file_path)) {
+                $valid_ids[] = $attachment_id;
+            } else {
+                if (WP_DEBUG) {
+                    error_log('Image file not found for attachment ID: ' . $attachment_id);
+                }
+                // No añadir mensaje de error, solo ignorar este ID
+            }
+        } else {
+            if (WP_DEBUG) {
+                error_log('Invalid image attachment ID: ' . $attachment_id);
             }
         }
-
-        return empty($this->errors);
     }
+    
+    // Actualizar el valor con solo los IDs válidos
+    $this->value = $valid_ids;
+
+    // Validar número máximo de archivos
+   if (count($this->value) > $this->attributes['data-max-files']) {
+    $this->add_errors(
+        sprintf(
+            esc_html__('Maximum %s files allowed.', 'hivepress-price-extras-description'),
+            $this->attributes['data-max-files']
+        )
+    );
+    return false;
+}
+
+return empty($this->errors);
+}
 
     /**
      * Renderiza el campo HTML.

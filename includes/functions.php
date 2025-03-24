@@ -57,43 +57,60 @@ function hpped_custom_block_content() {
                 $output .= '<div class="hp-price-extra">';
 
                 // Verificar si hay imágenes en el extra
-                if (!empty($extra['extra_images'])) {
-                    if (WP_DEBUG) {
-                        error_log('Processing images for extra: ' . $extra['name']);
-                        error_log('Images: ' . print_r($extra['extra_images'], true));
-                    }
+if (!empty($extra['extra_images'])) {
+    if (WP_DEBUG) {
+        error_log('Processing images for extra: ' . $extra['name']);
+        error_log('Images: ' . print_r($extra['extra_images'], true));
+    }
 
-                    $attachment_ids = is_array($extra['extra_images']) ? $extra['extra_images'] : [$extra['extra_images']];
-                    
-                    $output .= '<div class="hp-price-extra__images-carousel">';
-                    $output .= '<div class="carousel-container">';
-                    $output .= '<div class="carousel-track">';
-                    
-                    foreach ($attachment_ids as $attachment_id) {
-                        $image_url = wp_get_attachment_image_url($attachment_id, 'full');
-                        if ($image_url) {
-                            if (WP_DEBUG) {
-                                error_log('Adding image: ' . $image_url);
-                            }
-                            $output .= '<div class="carousel-slide">';
-                            $output .= '<img src="' . esc_url($image_url) . '" alt="' . esc_attr($extra['name']) . '">';
-                            $output .= '</div>';
-                        }
-                    }
-                    
-                    $output .= '</div>'; // carousel-track
-                    
-                    if (count($attachment_ids) > 1) {
-                        $output .= '<button class="carousel-arrow prev">&lt;</button>';
-                        $output .= '<button class="carousel-arrow next">&gt;</button>';
-                    }
-                    
-                    $output .= '</div>'; // carousel-container
-                    $output .= '</div>'; // hp-price-extra__images-carousel
+    $attachment_ids = is_array($extra['extra_images']) ? $extra['extra_images'] : [$extra['extra_images']];
+    $valid_images = [];
+    
+    foreach ($attachment_ids as $attachment_id) {
+        $image_url = wp_get_attachment_image_url($attachment_id, 'full');
+        $file_path = get_attached_file($attachment_id);
+        
+        // Verificar que la imagen existe físicamente
+        if ($image_url && $file_path && file_exists($file_path)) {
+            $valid_images[] = [
+                'id' => $attachment_id,
+                'url' => $image_url
+            ];
+        } else {
+            if (WP_DEBUG) {
+                error_log('Image not found for ID: ' . $attachment_id);
+            }
+        }
+    }
+    
+    if (!empty($valid_images)) {
+        $output .= '<div class="hp-price-extra__images-carousel">';
+        $output .= '<div class="carousel-container">';
+        $output .= '<div class="carousel-track">';
+        
+        foreach ($valid_images as $image) {
+            if (WP_DEBUG) {
+                error_log('Adding image: ' . $image['url']);
+            }
+            $output .= '<div class="carousel-slide">';
+            $output .= '<img src="' . esc_url($image['url']) . '" alt="' . esc_attr($extra['name']) . '">';
+            $output .= '</div>';
+        }
+        
+        $output .= '</div>'; // carousel-track
+        
+        if (count($valid_images) > 1) {
+            $output .= '<button class="carousel-arrow prev">&lt;</button>';
+            $output .= '<button class="carousel-arrow next">&gt;</button>';
+        }
+        
+        $output .= '</div>'; // carousel-container
+        $output .= '</div>'; // hp-price-extra__images-carousel
 
-                    // Añadir clase específica cuando hay imágenes
-                    $output = str_replace('<div class="hp-price-extra">', '<div class="hp-price-extra has-images">', $output);
-                }
+        // Añadir clase específica cuando hay imágenes
+        $output = str_replace('<div class="hp-price-extra">', '<div class="hp-price-extra has-images">', $output);
+    }
+}
 
                 $output .= '<div class="hp-price-extra__content">';
                 $output .= '<h4 class="hp-price-extra__name">' . esc_html($extra['name']) . '</h4>';
@@ -422,3 +439,270 @@ add_action('rest_api_init', function() {
     $controller = new \HPPriceExtrasDescription\Controllers\Price_Extras_Upload();
     $controller->register_routes();
 });
+
+/**
+ * Limpia adjuntos huérfanos de extras de precio
+ */
+function hpped_cleanup_orphaned_attachments() {
+    global $wpdb;
+    
+    if (WP_DEBUG) {
+        error_log('=== Starting orphaned attachments cleanup ===');
+    }
+    
+    // Buscar adjuntos con metadata de extras pero sin archivo físico
+    $attachments = $wpdb->get_results(
+        "SELECT p.ID, pm.meta_value as file_path 
+         FROM {$wpdb->posts} p
+         JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id
+         JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_wp_attached_file'
+         WHERE p.post_type = 'attachment'
+         AND pm1.meta_key = 'price_extra_image' 
+         AND pm1.meta_value = '1'"
+    );
+    
+    $deleted_count = 0;
+    
+    foreach ($attachments as $attachment) {
+        $file_path = get_attached_file($attachment->ID);
+        
+        // Si no hay archivo o no existe, eliminar el attachment
+        if (!$file_path || !file_exists($file_path)) {
+            if (WP_DEBUG) {
+                error_log('Deleting orphaned attachment: ' . $attachment->ID);
+                error_log('Missing file: ' . $file_path);
+            }
+            
+            wp_delete_attachment($attachment->ID, true);
+            $deleted_count++;
+        }
+    }
+    
+    if (WP_DEBUG) {
+        error_log('Deleted ' . $deleted_count . ' orphaned attachments');
+        error_log('=== Finished orphaned attachments cleanup ===');
+    }
+    
+    return $deleted_count;
+}
+
+// Programar limpieza diaria
+if (!wp_next_scheduled('hpped_cleanup_orphaned_attachments_hook')) {
+    wp_schedule_event(time(), 'daily', 'hpped_cleanup_orphaned_attachments_hook');
+}
+add_action('hpped_cleanup_orphaned_attachments_hook', 'hpped_cleanup_orphaned_attachments');
+
+// También ejecutar en actualización de plugin
+add_action('upgrader_process_complete', 'hpped_cleanup_orphaned_attachments', 10, 0);
+
+/**
+ * Repara las imágenes de extras de un listing específico
+ */
+function hpped_repair_listing_images($listing_id) {
+    if (WP_DEBUG) {
+        error_log('=== Starting image repair for listing ' . $listing_id . ' ===');
+    }
+    
+    // Obtener extras del listing
+    $extras = get_post_meta($listing_id, 'hp_price_extras', true);
+    if (empty($extras) || !is_array($extras)) {
+        if (WP_DEBUG) {
+            error_log('No extras found for listing');
+        }
+        return false;
+    }
+    
+    $fixed_images = 0;
+    
+    foreach ($extras as $key => &$extra) {
+        if (empty($extra['extra_images'])) {
+            continue;
+        }
+        
+        // Normalizar extra_images a array
+        $image_ids = is_array($extra['extra_images']) ? $extra['extra_images'] : explode(',', $extra['extra_images']);
+        $image_ids = array_filter(array_map('intval', $image_ids));
+        
+        if (empty($image_ids)) {
+            continue;
+        }
+        
+        $valid_ids = [];
+        
+        foreach ($image_ids as $image_id) {
+            // Verificar si la imagen existe
+            $attachment = get_post($image_id);
+            if (!$attachment || $attachment->post_type !== 'attachment') {
+                if (WP_DEBUG) {
+                    error_log('Attachment does not exist: ' . $image_id);
+                }
+                continue;
+            }
+            
+            // Verificar si el archivo físico existe
+            $file_path = get_attached_file($image_id);
+            if (!$file_path || !file_exists($file_path)) {
+                if (WP_DEBUG) {
+                    error_log('File does not exist for attachment: ' . $image_id);
+                }
+                
+                // Intentar encontrar el archivo en carpeta null o temporal
+                $upload_dir = wp_upload_dir();
+                $extra_name = sanitize_title($extra['name']);
+                
+                // Posibles rutas alternativas
+                $possible_paths = [
+                    $upload_dir['basedir'] . '/price-extras/null/' . $extra_name,
+                    $upload_dir['basedir'] . '/price-extras/temp/' . $extra_name,
+                    $upload_dir['basedir'] . '/price-extras/' . $listing_id . '/' . $extra_name,
+                ];
+                
+                $file_fixed = false;
+                
+                foreach ($possible_paths as $dir_path) {
+                    if (!is_dir($dir_path)) {
+                        continue;
+                    }
+                    
+                    // Buscar por nombre de archivo original
+                    $file_name = basename($file_path);
+                    $alternative_path = $dir_path . '/' . $file_name;
+                    
+                    if (file_exists($alternative_path)) {
+                        // Crear directorio destino si no existe
+                        $target_dir = $upload_dir['basedir'] . '/price-extras/' . $listing_id . '/' . $extra_name;
+                        if (!is_dir($target_dir)) {
+                            wp_mkdir_p($target_dir);
+                        }
+                        
+                        // Copiar archivo
+                        $target_path = $target_dir . '/' . $file_name;
+                        if (copy($alternative_path, $target_path)) {
+                            // Actualizar metadata
+                            update_attached_file($image_id, $target_path);
+                            
+                            // Actualizar metadata de listing
+                            update_post_meta($image_id, 'price_extra_listing_id', $listing_id);
+                            update_post_meta($image_id, 'price_extra_key', $extra_name);
+                            
+                            $file_fixed = true;
+                            $fixed_images++;
+                            
+                            if (WP_DEBUG) {
+                                error_log('Fixed image: ' . $image_id . ' by copying from ' . $alternative_path);
+                            }
+                            
+                            // Regenerar metadata y thumbnails
+                            $metadata = wp_generate_attachment_metadata($image_id, $target_path);
+                            wp_update_attachment_metadata($image_id, $metadata);
+                            
+                            $valid_ids[] = $image_id;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!$file_fixed) {
+                    if (WP_DEBUG) {
+                        error_log('Could not fix image: ' . $image_id);
+                    }
+                    // No añadir a valid_ids
+                }
+            } else {
+                // La imagen es válida
+                $valid_ids[] = $image_id;
+            }
+        }
+        
+        // Actualizar extra con solo las imágenes válidas
+        $extra['extra_images'] = $valid_ids;
+    }
+    
+    // Guardar los cambios
+    update_post_meta($listing_id, 'hp_price_extras', $extras);
+    
+    if (WP_DEBUG) {
+        error_log('Fixed ' . $fixed_images . ' images');
+        error_log('=== Finished image repair ===');
+    }
+    
+    return $fixed_images;
+}
+
+// Añadir herramienta de reparación accesible para administradores
+add_action('admin_menu', function() {
+    add_submenu_page(
+        'tools.php',
+        'Repair Price Extras Images',
+        'Repair Price Extras',
+        'manage_options',
+        'repair-price-extras',
+        'hpped_repair_images_page'
+    );
+});
+
+function hpped_repair_images_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have sufficient permissions to access this page.', 'hivepress-price-extras-description'));
+    }
+    
+    $message = '';
+    
+    if (isset($_POST['repair_listing']) && isset($_POST['listing_id']) && is_numeric($_POST['listing_id'])) {
+        $listing_id = intval($_POST['listing_id']);
+        $fixed = hpped_repair_listing_images($listing_id);
+        
+        if ($fixed !== false) {
+            $message = sprintf(
+                __('Repaired %d images for listing #%d', 'hivepress-price-extras-description'),
+                $fixed,
+                $listing_id
+            );
+        } else {
+            $message = sprintf(
+                __('No extras found for listing #%d', 'hivepress-price-extras-description'),
+                $listing_id
+            );
+        }
+    }
+    
+    if (isset($_POST['repair_orphaned'])) {
+        $deleted = hpped_cleanup_orphaned_attachments();
+        $message = sprintf(
+            __('Deleted %d orphaned attachments', 'hivepress-price-extras-description'),
+            $deleted
+        );
+    }
+    
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Repair Price Extras Images', 'hivepress-price-extras-description'); ?></h1>
+        
+        <?php if ($message): ?>
+        <div class="notice notice-success">
+            <p><?php echo esc_html($message); ?></p>
+        </div>
+        <?php endif; ?>
+        
+        <div class="card">
+            <h2><?php _e('Repair Listing Images', 'hivepress-price-extras-description'); ?></h2>
+            <p><?php _e('This tool will attempt to find and fix missing images for a specific listing.', 'hivepress-price-extras-description'); ?></p>
+            
+            <form method="post">
+                <label for="listing_id"><?php _e('Listing ID:', 'hivepress-price-extras-description'); ?></label>
+                <input type="number" name="listing_id" id="listing_id" required>
+                <button type="submit" name="repair_listing" class="button button-primary"><?php _e('Repair Listing', 'hivepress-price-extras-description'); ?></button>
+            </form>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+            <h2><?php _e('Clean Orphaned Attachments', 'hivepress-price-extras-description'); ?></h2>
+            <p><?php _e('This tool will remove attachment records from the database that have missing physical files.', 'hivepress-price-extras-description'); ?></p>
+            
+            <form method="post">
+                <button type="submit" name="repair_orphaned" class="button button-primary"><?php _e('Clean Orphaned Attachments', 'hivepress-price-extras-description'); ?></button>
+            </form>
+        </div>
+    </div>
+    <?php
+}

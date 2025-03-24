@@ -51,106 +51,118 @@ class Price_Extras_Upload {
    }
 
    /**
-    * Manejar subida de archivos
-    */
-   public function handle_upload($request) {
-       error_log('=== Starting handle_upload ===');
-       
-       // Asegurar que los filtros se apliquen desde el inicio
-       $this->remove_default_image_sizes();
-       $this->set_custom_image_sizes();
-       
-       $files = $request->get_file_params();
-       if (empty($files['file'])) {
-           error_log('No file found in request');
-           return new \WP_Error('no_file', 'No file was uploaded', ['status' => 400]);
-       }
+ * Manejar subida de archivos
+ */
+public function handle_upload($request) {
+    error_log('=== Starting handle_upload ===');
+    
+    // Asegurar que los filtros se apliquen desde el inicio
+    $this->remove_default_image_sizes();
+    $this->set_custom_image_sizes();
+    
+    $files = $request->get_file_params();
+    if (empty($files['file'])) {
+        error_log('No file found in request');
+        return new \WP_Error('no_file', __('No file was uploaded', 'hivepress-price-extras-description'), ['status' => 400]);
+    }
 
-       $listingId = $request->get_param('listing_id');
-       $extraId = $request->get_param('extra_id');
+    $listingId = $request->get_param('listing_id');
+    $extraId = $request->get_param('extra_id');
+    $isTempListing = false;
 
-       if (!$listingId || !$extraId) {
-           return new \WP_Error('missing_params', 'Missing required parameters', ['status' => 400]);
-       }
+    if (!$extraId) {
+        return new \WP_Error('missing_params', __('Missing required parameters', 'hivepress-price-extras-description'), ['status' => 400]);
+    }
 
-       try {
-           error_log('Setting up image handling for upload');
-           
-           // Crear estructura de directorios
-           $upload_dir = wp_upload_dir();
-           $relative_path = "/price-extras/{$listingId}/{$extraId}";    
-           $target_dir = $upload_dir['basedir'] . $relative_path;
+    // Si listingId es null o 'new', usamos un directorio temporal
+    if (!$listingId || $listingId === 'null' || $listingId === 'new' || $listingId === '0') {
+        $isTempListing = true;
+        $listingId = 'temp';
+        error_log('Using temporary listing folder: ' . $listingId);
+    }
 
-           if (!file_exists($target_dir)) {
-               wp_mkdir_p($target_dir);
-           }
+    try {
+        error_log('Setting up image handling for upload');
+        
+        // Crear estructura de directorios
+        $upload_dir = wp_upload_dir();
+        $relative_path = "/price-extras/{$listingId}/{$extraId}";    
+        $target_dir = $upload_dir['basedir'] . $relative_path;
 
-           // Configurar directorio de subida
-           add_filter('upload_dir', function($dirs) use ($relative_path) {
-               $dirs['subdir'] = $relative_path;
-               $dirs['path'] = $dirs['basedir'] . $relative_path;
-               $dirs['url'] = $dirs['baseurl'] . $relative_path;
-               return $dirs;
-           });
+        if (!file_exists($target_dir)) {
+            wp_mkdir_p($target_dir);
+        }
 
-           require_once(ABSPATH . 'wp-admin/includes/image.php');
-           require_once(ABSPATH . 'wp-admin/includes/file.php');
-           require_once(ABSPATH . 'wp-admin/includes/media.php');
+        // Configurar directorio de subida
+        add_filter('upload_dir', function($dirs) use ($relative_path) {
+            $dirs['subdir'] = $relative_path;
+            $dirs['path'] = $dirs['basedir'] . $relative_path;
+            $dirs['url'] = $dirs['baseurl'] . $relative_path;
+            return $dirs;
+        });
 
-           $file = $files['file'];
-           $upload_overrides = ['test_form' => false];
-           
-           $uploaded_file = wp_handle_upload($file, $upload_overrides);
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
 
-           if (isset($uploaded_file['error'])) {
-               error_log('Upload error: ' . $uploaded_file['error']);
-               return new \WP_Error('upload_error', $uploaded_file['error'], ['status' => 400]);
-           }
+        $file = $files['file'];
+        $upload_overrides = ['test_form' => false];
+        
+        $uploaded_file = wp_handle_upload($file, $upload_overrides);
 
-           $attachment = [
-               'post_mime_type' => $uploaded_file['type'],
-               'post_title' => preg_replace('/\.[^.]+$/', '', basename($uploaded_file['file'])),
-               'post_content' => '',
-               'post_status' => 'inherit'
-           ];
+        if (isset($uploaded_file['error'])) {
+            error_log('Upload error: ' . $uploaded_file['error']);
+            return new \WP_Error('upload_error', $uploaded_file['error'], ['status' => 400]);
+        }
 
-           $attachment_id = wp_insert_attachment($attachment, $uploaded_file['file']);
+        $attachment = [
+            'post_mime_type' => $uploaded_file['type'],
+            'post_title' => preg_replace('/\.[^.]+$/', '', basename($uploaded_file['file'])),
+            'post_content' => '',
+            'post_status' => 'inherit'
+        ];
 
-           if (is_wp_error($attachment_id)) {
+        $attachment_id = wp_insert_attachment($attachment, $uploaded_file['file']);
+
+        if (is_wp_error($attachment_id)) {
             error_log('Attachment creation error: ' . $attachment_id->get_error_message());
             return $attachment_id;
-            }
+        }
 
-            if (!is_wp_error($attachment_id)) {
-                update_post_meta($attachment_id, 'price_extra_image', true);
+        if (!is_wp_error($attachment_id)) {
+            update_post_meta($attachment_id, 'price_extra_image', true);
+            // Si es temporal, marcar para futura migración
+            if ($isTempListing) {
+                update_post_meta($attachment_id, 'price_extra_temp_listing', true);
+            } else {
                 update_post_meta($attachment_id, 'price_extra_listing_id', $listingId);
-                update_post_meta($attachment_id, 'price_extra_key', $extraId);  // Usamos solo key
-                update_post_meta($attachment_id, 'price_extra_temporary', true);
-                update_post_meta($attachment_id, 'price_extra_upload_time', current_time('mysql'));
             }
+            update_post_meta($attachment_id, 'price_extra_key', $extraId);
+            update_post_meta($attachment_id, 'price_extra_temporary', true);
+            update_post_meta($attachment_id, 'price_extra_upload_time', current_time('mysql'));
+        }
 
+        // Usar el método público
+        $priceExtras = \HPPriceExtrasDescription\Components\Price_Extras_Description::init();
+        $priceExtras->handle_image_sizes($attachment_id);
 
-           // Usar el método público
-           $priceExtras = \HPPriceExtrasDescription\Components\Price_Extras_Description::init();
-           $priceExtras->handle_image_sizes($attachment_id);
+        $attachment_data = wp_generate_attachment_metadata($attachment_id, $uploaded_file['file']);
+        error_log('Generated metadata: ' . print_r($attachment_data, true));
+        wp_update_attachment_metadata($attachment_id, $attachment_data);
 
-           $attachment_data = wp_generate_attachment_metadata($attachment_id, $uploaded_file['file']);
-           error_log('Generated metadata: ' . print_r($attachment_data, true));
-           wp_update_attachment_metadata($attachment_id, $attachment_data);
+        return rest_ensure_response([
+            'id' => $attachment_id,
+            'url' => wp_get_attachment_url($attachment_id),
+            'thumbnail' => wp_get_attachment_image_url($attachment_id, 'price-extra-thumbnail'),
+            'name' => get_the_title($attachment_id)
+        ]);
 
-           return rest_ensure_response([
-               'id' => $attachment_id,
-               'url' => wp_get_attachment_url($attachment_id),
-               'thumbnail' => wp_get_attachment_image_url($attachment_id, 'price-extra-thumbnail'),
-               'name' => get_the_title($attachment_id)
-           ]);
-
-       } finally {
-           // Asegurar que los filtros se limpien incluso si hay error
-           $this->cleanup_image_filters();
-           remove_all_filters('upload_dir');
-       }
-   }
+    } finally {
+        // Asegurar que los filtros se limpien incluso si hay error
+        $this->cleanup_image_filters();
+        remove_all_filters('upload_dir');
+    }
+}
 
    /**
     * Remover tamaños de imagen por defecto

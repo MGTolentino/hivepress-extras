@@ -15,7 +15,7 @@ if (!function_exists('hpped_debug_log')) {
     }
 }
 
-require_once dirname(__FILE__) . '/translations.php';
+require_once dirname(__FILE__) . 'languages/translations.php';
 
 // En el constructor de Attachment
 add_action('init', function() {

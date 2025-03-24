@@ -233,16 +233,32 @@
     // Frontend Uploader
     var FrontendUploader = Object.create(BaseUploader);
     FrontendUploader.getListingId = function() {
-        // Obtener ID del listing de la URL en frontend
+        // Intentar obtener ID del listing de la URL en frontend
         var matches = window.location.pathname.match(/\/listings\/(\d+)/);
-        return matches ? matches[1] : null;
+        var listingId = matches ? matches[1] : null;
+        
+        // Si no se encuentra un ID, marcar como temporal
+        if (!listingId) {
+            console.log('No listing ID found in URL, using "temp" value');
+            return 'temp';
+        }
+        
+        return listingId;
     };
 
     // Admin Uploader
     var AdminUploader = Object.create(BaseUploader);
     AdminUploader.getListingId = function() {
         // Obtener ID del listing en admin
-        return $('#post_ID').val();
+        var postId = $('#post_ID').val();
+        
+        // Si no hay ID o es 0 (nuevo post), usar temporal
+        if (!postId || postId === '0') {
+            console.log('New post detected, using "temp" value for listing ID');
+            return 'temp';
+        }
+        
+        return postId;
     };
 
     // Inicializar

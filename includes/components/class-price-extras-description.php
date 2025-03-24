@@ -373,6 +373,145 @@ class Price_Extras_Description
         return $attributes;
     }
 
+    /**
+ * Migra imágenes de la carpeta temporal a la carpeta del listing real
+ */
+private function migrate_temp_images($listing_id) {
+    if (WP_DEBUG) {
+        error_log('=== Starting temp images migration ===');
+        error_log('Listing ID: ' . $listing_id);
+    }
+    
+    global $wpdb;
+    
+    // Buscar todas las imágenes temporales
+    $temp_images = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p
+            JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id AND pm1.meta_key = 'price_extra_temp_listing' AND pm1.meta_value = '1'
+            JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id AND pm2.meta_key = 'price_extra_image' AND pm2.meta_value = '1'
+            WHERE p.post_type = 'attachment'"
+        )
+    );
+    
+    if (empty($temp_images)) {
+        if (WP_DEBUG) {
+            error_log('No temporary images found to migrate');
+        }
+        return;
+    }
+    
+    if (WP_DEBUG) {
+        error_log('Found ' . count($temp_images) . ' temporary images to migrate');
+    }
+    
+    $upload_dir = wp_upload_dir();
+    $temp_base_path = $upload_dir['basedir'] . '/price-extras/temp';
+    $listing_base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
+    
+    foreach ($temp_images as $image) {
+        $image_id = $image->ID;
+        $extra_key = get_post_meta($image_id, 'price_extra_key', true);
+        
+        if (!$extra_key) {
+            if (WP_DEBUG) {
+                error_log('Skipping image ' . $image_id . ' - no extra key found');
+            }
+            continue;
+        }
+        
+        // Obtener ruta actual del archivo
+        $current_file = get_attached_file($image_id);
+        if (!$current_file || !file_exists($current_file)) {
+            if (WP_DEBUG) {
+                error_log('File not found for image ' . $image_id);
+            }
+            continue;
+        }
+        
+        // Crear carpeta destino
+        $extra_path = $listing_base_path . '/' . $extra_key;
+        if (!is_dir($extra_path)) {
+            wp_mkdir_p($extra_path);
+        }
+        
+        // Mover archivo principal
+        $filename = basename($current_file);
+        $new_file = $extra_path . '/' . $filename;
+        
+        if (WP_DEBUG) {
+            error_log('Moving image ' . $image_id . ' from ' . $current_file . ' to ' . $new_file);
+        }
+        
+        if (rename($current_file, $new_file)) {
+            // Obtener metadatos para mover miniaturas
+            $metadata = wp_get_attachment_metadata($image_id);
+            if (!empty($metadata['sizes'])) {
+                $current_dir = dirname($current_file);
+                foreach ($metadata['sizes'] as $size) {
+                    if (isset($size['file'])) {
+                        $old_thumb = $current_dir . '/' . $size['file'];
+                        $new_thumb = $extra_path . '/' . $size['file'];
+                        if (file_exists($old_thumb)) {
+                            rename($old_thumb, $new_thumb);
+                        }
+                    }
+                }
+            }
+            
+            // Actualizar metadatos
+            update_post_meta($image_id, 'price_extra_temp_listing', '0');
+            update_post_meta($image_id, 'price_extra_listing_id', $listing_id);
+            update_post_meta($image_id, 'price_extra_temporary', '0');
+            update_attached_file($image_id, $new_file);
+            
+            // Actualizar metadatos del archivo
+            if ($metadata) {
+                // Actualizar ruta del archivo principal
+                if (isset($metadata['file'])) {
+                    $metadata['file'] = str_replace(
+                        'price-extras/temp/' . $extra_key,
+                        'price-extras/' . $listing_id . '/' . $extra_key,
+                        $metadata['file']
+                    );
+                }
+                wp_update_attachment_metadata($image_id, $metadata);
+            }
+            
+            if (WP_DEBUG) {
+                error_log('Successfully migrated image ' . $image_id);
+            }
+        } else {
+            if (WP_DEBUG) {
+                error_log('Failed to move file for image ' . $image_id);
+            }
+        }
+    }
+    
+    // Limpiar carpeta temporal si está vacía
+    if (is_dir($temp_base_path)) {
+        $is_empty = true;
+        $dir_contents = scandir($temp_base_path);
+        foreach ($dir_contents as $item) {
+            if ($item != '.' && $item != '..') {
+                $is_empty = false;
+                break;
+            }
+        }
+        
+        if ($is_empty) {
+            rmdir($temp_base_path);
+            if (WP_DEBUG) {
+                error_log('Removed empty temp directory');
+            }
+        }
+    }
+    
+    if (WP_DEBUG) {
+        error_log('=== Finished temp images migration ===');
+    }
+}
+
   /**************************************
 * FUNCIÓN: Process_price_extras_images
 * Maneja el procesamiento de imágenes y carpetas
@@ -693,14 +832,8 @@ private function process_price_extras_images($listing_id, $extras) {
         }
  }
 
-   /**************************************
-* FUNCIÓN: handle_price_extras_update
-* Maneja actualización desde frontend
-**************************************/
-public function handle_price_extras_update($listing_id) {
-    /**************************************
-     * PASO 1: Preparación
-     **************************************/
+ public function handle_price_extras_update($listing_id) {
+    // PASO 1: Preparación
     if (is_object($listing_id)) {
         $listing_id = $listing_id->get_id();
     }
@@ -717,19 +850,15 @@ public function handle_price_extras_update($listing_id) {
         error_log(print_r($price_extras, true));
         error_log('hp_price_extras data:');
         error_log(print_r($hp_price_extras, true));
-        
-        // Ver todos los metadatos del post
-        error_log('All post meta:');
-        error_log(print_r(get_post_meta($listing_id), true));
     }
  
-    /**************************************
-     * PASO 2: Obtener datos
-     **************************************/
+    // PASO 1.5: Intentar migrar imágenes temporales
+    $this->migrate_temp_images($listing_id);
+ 
+    // PASO 2: Obtener datos
     $extras = get_post_meta($listing_id, 'hp_price_extras', true);
 
-     // Añadir este log aquí
-     if (WP_DEBUG) {
+    if (WP_DEBUG) {
         error_log('hp_price_extras data:');
         error_log(print_r($extras, true));
     }
@@ -741,15 +870,11 @@ public function handle_price_extras_update($listing_id) {
         return;
     }
  
-    /**************************************
-     * PASO 3: Procesar imágenes y carpetas
-     **************************************/
+    // PASO 3: Procesar imágenes y carpetas
     $this->process_price_extras_images($listing_id, $extras);
- 
-    /**************************************
-     * PASO 4: Limpieza final
-     **************************************/
- }
+}
+
+
     /**************************************
 * FUNCIÓN: save_price_extras_images
 * Maneja guardado desde admin

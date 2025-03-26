@@ -54,7 +54,6 @@ class Price_Extras_Upload {
  * Manejar subida de archivos
  */
 public function handle_upload($request) {
-    error_log('=== Starting handle_upload ===');
     
     // Asegurar que los filtros se apliquen desde el inicio
     $this->remove_default_image_sizes();
@@ -82,7 +81,6 @@ public function handle_upload($request) {
     }
 
     try {
-        error_log('Setting up image handling for upload');
         
         // Crear estructura de directorios
         $upload_dir = wp_upload_dir();
@@ -168,7 +166,6 @@ public function handle_upload($request) {
     * Remover tamaños de imagen por defecto
     */
    private function remove_default_image_sizes() {
-       error_log('Removing default image sizes');
        
        // Remover todos los tamaños intermedios
        add_filter('intermediate_image_sizes', function($sizes) {
@@ -183,7 +180,6 @@ public function handle_upload($request) {
     * Configurar tamaños personalizados
     */
    private function set_custom_image_sizes() {
-       error_log('Setting up custom image sizes');
        
        add_filter('intermediate_image_sizes_advanced', function($sizes) {
            error_log('Applying custom image sizes filter');
@@ -211,7 +207,6 @@ public function handle_upload($request) {
     * Limpiar filtros
     */
    private function cleanup_image_filters() {
-       error_log('Cleaning up image filters');
        remove_all_filters('intermediate_image_sizes');
        remove_all_filters('intermediate_image_sizes_advanced');
        remove_all_filters('big_image_size_threshold');

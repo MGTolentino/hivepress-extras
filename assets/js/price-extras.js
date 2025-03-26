@@ -177,7 +177,6 @@
     
     // Si es required, no permitir cambios
     if (isRequired) {
-        console.log("No se permiten cambios en este extra obligatorio");
         return;
     }
     
@@ -325,7 +324,6 @@
            var $slides = $carousel.find('.carousel-slide');
            
            if (!$slides.length) {
-               console.log('No slides found');
                return;
            }
            

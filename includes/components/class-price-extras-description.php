@@ -21,25 +21,16 @@ class Price_Extras_Description
      */
     public function __construct()
     {
-        // Log de inicialización
-        if (WP_DEBUG) {
-            error_log('=== Price Extras Description Component Initializing ===');
-        }
 
         // Filtros principales
         add_filter('hivepress/v1/models/listing/attributes', [$this, 'add_description_to_price_extras']);
         add_action('hivepress/v1/models/listing/update', [$this, 'handle_price_extras_update'], 20, 1);
         add_action('wp_scheduled_delete', [$this, 'cleanup_orphaned_images']);
-        error_log('Update hook registered');
         add_action('hivepress/v1/models/listing/update', function ($listing_id) {
-            error_log('=== DEBUG: Update action triggered ===');
-            error_log('Listing ID: ' . print_r($listing_id, true));
         }, 5);  // Prioridad 5 para que se ejecute antes que nuestro hook
 
         // En class-price-extras-description.php, en el constructor:
         add_action('hivepress/v1/models/listing/update', function ($listing_id) {
-            error_log('=== DEBUG: Raw POST data ===');
-            error_log(print_r($_POST, true));
         }, 5);
 
         // Filtros para HivePress
@@ -536,12 +527,6 @@ private function process_price_extras_images($listing_id, $extras) {
     $upload_dir = wp_upload_dir();
     $base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
  
-    if (WP_DEBUG) {
-        error_log('=== Processing Price Extras Images ===');
-        error_log('Listing ID: ' . $listing_id);
-        error_log('Base path: ' . $base_path);
-    }
- 
     /**************************************
      * PASO 3: Procesamiento de cada extra
      **************************************/
@@ -557,12 +542,6 @@ private function process_price_extras_images($listing_id, $extras) {
         $image_ids = is_string($extra['extra_images']) ? 
             explode(',', $extra['extra_images']) : 
             (is_array($extra['extra_images']) ? $extra['extra_images'] : [$extra['extra_images']]);
- 
-                    if (WP_DEBUG) {
-                        error_log('Processing extra with data:');
-                        error_log(print_r($extra, true));
-                        error_log('extra_images type: ' . gettype($extra['extra_images']));
-                    }
  
         /**************************************
          * PASO 4: Procesamiento de cada imagen

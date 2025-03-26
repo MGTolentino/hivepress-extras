@@ -1,6 +1,4 @@
 jQuery(document).ready(function($) {
-    console.log('Price Extras Admin JS Initialized');
-
     // Asegurar que el formulario tenga el enctype correcto
     $('form#post').attr('enctype', 'multipart/form-data');
 

@@ -17,16 +17,6 @@ if (!function_exists('hpped_debug_log')) {
 
 require_once dirname(__FILE__) . '/translations.php';
 
-// En el constructor de Attachment
-add_action('init', function() {
-    hpped_debug_log('Attachment controller initialized');
-});
-
-add_action('wp_ajax_hpped_upload_attachment', function() {
-    hpped_debug_log('Ajax upload action triggered', $_POST);
-    hpped_debug_log('Files:', $_FILES);
-});
-
 function hpped_custom_block_content() {
     // Get current listing
     $listing = hivepress()->request->get_context('listing');
@@ -38,10 +28,6 @@ function hpped_custom_block_content() {
     if ($listing) {
         $price_extras = $listing->get_price_extras();
         if (!empty($price_extras)) {
-            if (WP_DEBUG) {
-                error_log('=== Building Price Extras Display ===');
-                error_log('Price Extras Data: ' . print_r($price_extras, true));
-            }
 
             $output = '<div class="hp-price-extras-container"><div class="hp-price-extras">';
             

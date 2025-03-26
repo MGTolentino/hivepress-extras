@@ -11,7 +11,6 @@
         init: function() {
             this.initializeExistingPreviews();
             this.bindEvents();
-            console.log('Base Uploader initialized in ' + (isAdmin ? 'admin' : 'frontend') + ' mode');
         },
 
         initializeExistingPreviews: function() {
@@ -85,7 +84,6 @@
             var extraId = this.getExtraId($hiddenInput);
 
             if (!extraId) {
-                console.error('Could not extract extra ID');
                 return;
             }
 
@@ -130,11 +128,6 @@
                 }
             })
             .fail(function(jqXHR, textStatus, errorThrown) {
-                console.error('Upload failed:', {
-                    status: jqXHR.status,
-                    statusText: jqXHR.statusText,
-                    responseText: jqXHR.responseText
-                });
                 alert(hppedVars.i18n.fileUploadError + ' ' + file.name);
             })
             .always(function() {

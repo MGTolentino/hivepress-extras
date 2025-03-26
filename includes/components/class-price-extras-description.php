@@ -1575,13 +1575,4 @@ public function cleanup_orphaned_images() {
     }
 }
 
-// Si quieres una opción para limpiar manualmente, puedes añadir esto:
-if (is_admin()) {
-    add_action('admin_post_cleanup_orphaned_extras', function() {
-        $this->cleanup_orphaned_images();
-        wp_redirect(admin_url('edit.php?post_type=hp_listing&cleanup_complete=1'));
-        exit;
-    });
-}
-
 }

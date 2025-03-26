@@ -875,10 +875,14 @@ private function process_price_extras_images($listing_id, $extras) {
 }
 
 
-    /**************************************
-* FUNCIÓN: save_price_extras_images
-* Maneja guardado desde admin
-**************************************/
+/**
+ * Modificación para class-price-extras-description.php
+ * 
+ * Modifica la función save_price_extras_images para llamar a migrate_temp_images
+ * antes de procesar las imágenes, igual que en el frontend.
+ */
+
+
 public function save_price_extras_images($post_id, $post, $update) {
     /**************************************
      * PASO 1: Verificaciones iniciales
@@ -904,6 +908,14 @@ public function save_price_extras_images($post_id, $post, $update) {
      * PASO 2: Obtención de datos
      **************************************/
     try {
+        // SOLUCIÓN: Llamar a migrate_temp_images antes de procesar
+        if (WP_DEBUG) {
+            error_log('Calling migrate_temp_images from admin save');
+        }
+        
+        // Esta es la línea clave que faltaba
+        $this->migrate_temp_images($post_id);
+        
         $price_extras_from_post = isset($_POST['hp_price_extras']) ? $_POST['hp_price_extras'] : null;
         $extras = $price_extras_from_post ?: get_post_meta($post_id, 'hp_price_extras', true);
  
@@ -927,7 +939,7 @@ public function save_price_extras_images($post_id, $post, $update) {
             error_log($e->getTraceAsString());
         }
     }
- }
+}
 
     /**
      * Actualiza las URLs y metadatos de un attachment después del renombrado de carpeta

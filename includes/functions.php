@@ -276,6 +276,15 @@ function hpped_register_editing_assets() {
         true
     );
 
+    // JS para solucionar el problema del repeater con imágenes
+        wp_enqueue_script(
+            'hpped-fix-repeater-images',
+            $plugin_url . 'assets/js/fix-repeater-images.js',
+            ['jquery', 'hivepress-core'], // Asegúrate de que se cargue después del core de HivePress
+            '1.0.0',
+            true
+        );
+
     // Obtener el ID del listing de la URL
     $listing_id = null;
 
@@ -352,6 +361,15 @@ function hpped_register_admin_assets($hook) {
             'hpped-price-extras-upload',
             $plugin_url . 'assets/js/price-extras-upload.js',
             ['jquery'],
+            '1.0.0',
+            true
+        );
+
+        // JS para solucionar el problema del repeater con imágenes
+        wp_enqueue_script(
+            'hpped-fix-repeater-images',
+            $plugin_url . 'assets/js/fix-repeater-images.js',
+            ['jquery', 'hivepress-core'], // Asegúrate de que se cargue después del core de HivePress
             '1.0.0',
             true
         );

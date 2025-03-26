@@ -1,5 +1,4 @@
 <?php
-// includes/functions.php
 
 // Exit if accessed directly.
 defined('ABSPATH') || exit;
@@ -205,7 +204,6 @@ function hpped_register_viewing_assets() {
         $common_vars = hpped_register_common_assets();
         $plugin_url = $common_vars['pluginUrl'];
 
-        // CSS y JS para visualización (tarjetas y popups)
         wp_enqueue_style(
             'hpped-price-extras',
             $plugin_url . 'assets/css/price-extras.css',
@@ -219,6 +217,12 @@ function hpped_register_viewing_assets() {
             ['jquery'],
             '1.0.0',
             true
+        );
+
+        wp_localize_script(
+            'hpped-price-extras',
+            'hppedVars',
+            $common_vars
         );
     }
 }
@@ -245,7 +249,6 @@ function hpped_register_editing_assets() {
     $common_vars = hpped_register_common_assets();
     $plugin_url = $common_vars['pluginUrl'];
 
-    // CSS para upload
     wp_enqueue_style(
         'hpped-price-extras-upload',
         $plugin_url . 'assets/css/price-extras-upload.css',
@@ -253,7 +256,6 @@ function hpped_register_editing_assets() {
         '1.0.0'
     );
 
-    // JS para upload
     wp_enqueue_script(
         'hpped-price-extras-upload',
         $plugin_url . 'assets/js/price-extras-upload.js',
@@ -266,7 +268,7 @@ function hpped_register_editing_assets() {
         wp_enqueue_script(
             'hpped-fix-repeater-images',
             $plugin_url . 'assets/js/fix-repeater-images.js',
-            ['jquery', 'hivepress-core'], // Asegúrate de que se cargue después del core de HivePress
+            ['jquery', 'hivepress-core'], 
             '1.0.0',
             true
         );
@@ -334,7 +336,6 @@ function hpped_register_admin_assets($hook) {
         $common_vars = hpped_register_common_assets();
         $plugin_url = $common_vars['pluginUrl'];
 
-        // CSS para upload en admin
         wp_enqueue_style(
             'hpped-price-extras-upload',
             $plugin_url . 'assets/css/price-extras-upload.css',
@@ -342,7 +343,6 @@ function hpped_register_admin_assets($hook) {
             '1.0.0'
         );
 
-        // JS para upload en admin
         wp_enqueue_script(
             'hpped-price-extras-upload',
             $plugin_url . 'assets/js/price-extras-upload.js',
@@ -355,7 +355,7 @@ function hpped_register_admin_assets($hook) {
         wp_enqueue_script(
             'hpped-fix-repeater-images',
             $plugin_url . 'assets/js/fix-repeater-images.js',
-            ['jquery', 'hivepress-core'], // Asegúrate de que se cargue después del core de HivePress
+            ['jquery', 'hivepress-core'], 
             '1.0.0',
             true
         );
@@ -436,7 +436,6 @@ function hpped_cleanup_price_extras_files($post_id, $post) {
     }
 }
 
-// En functions.php
 add_action('rest_api_init', function() {
     // Registrar rutas REST
     require_once dirname(__FILE__) . '/controllers/class-price-extras-upload.php';

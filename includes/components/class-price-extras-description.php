@@ -16,9 +16,6 @@ class Price_Extras_Description
     /**
      * Class constructor.
      */
-    /**
-     * Class constructor.
-     */
     public function __construct()
     {
 
@@ -27,13 +24,11 @@ class Price_Extras_Description
         add_action('hivepress/v1/models/listing/update', [$this, 'handle_price_extras_update'], 20, 1);
         add_action('wp_scheduled_delete', [$this, 'cleanup_orphaned_images']);
         add_action('hivepress/v1/models/listing/update', function ($listing_id) {
-        }, 5);  // Prioridad 5 para que se ejecute antes que nuestro hook
+        }, 5);  
 
-        // En class-price-extras-description.php, en el constructor:
         add_action('hivepress/v1/models/listing/update', function ($listing_id) {
         }, 5);
 
-        // Filtros para HivePress
         add_filter('hivepress/v1/models/listing/get_images', [$this, 'filter_listing_images'], 1, 2);
         add_filter('hivepress/v1/models/listing/get_images__id', [$this, 'filter_listing_images'], 1, 2);
 
@@ -89,15 +84,6 @@ class Price_Extras_Description
         // Filtros para formularios
         add_filter('hivepress/v1/forms', [$this, 'modify_forms'], 10, 2);
 
-        // Hooks para debugging de attachments
-        if (WP_DEBUG) {
-            add_action('add_attachment', function ($post_id) {
-                error_log("=== New Attachment Added ===");
-                error_log("Attachment ID: $post_id");
-                error_log("Meta: " . print_r(get_post_meta($post_id), true));
-            });
-        }
-
         // Prevenir que HivePress procese nuestras imágenes
         add_filter('hivepress/v1/models/listing/attributes', function ($attributes) {
             if (isset($attributes['images'])) {
@@ -107,9 +93,6 @@ class Price_Extras_Description
         });
 
         add_filter('hivepress/v1/models/listing/get_images', function ($images, $listing) {
-            error_log('=== HivePress Getting Images ===');
-            error_log('Listing ID: ' . $listing->get_id());
-            error_log('Images before filter: ' . print_r($images, true));
             return $images;
         }, 5, 2);
 
@@ -1255,10 +1238,6 @@ public function save_price_extras_images($post_id, $post, $update) {
 
     public function process_edited_attachment($attachment_id)
     {
-        if (WP_DEBUG) {
-            error_log("=== Processing Edited Attachment ===");
-            error_log("Attachment ID: $attachment_id");
-        }
 
         $is_extra_image = get_post_meta($attachment_id, 'price_extra_image', true);
         if ($is_extra_image) {
@@ -1272,11 +1251,6 @@ public function save_price_extras_images($post_id, $post, $update) {
         $attachment_id = is_object($attachment) ? $attachment->get_id() : $attachment;
 
         if (get_post_meta($attachment_id, 'price_extra_image', true)) {
-            if (WP_DEBUG) {
-                error_log("=== Filtering Attachment URLs ===");
-                error_log("Attachment ID: $attachment_id");
-                error_log("Is Extra Image - Returning empty array");
-            }
             return [];
         }
         return $urls;
@@ -1288,19 +1262,11 @@ public function save_price_extras_images($post_id, $post, $update) {
             return $attachments;
         }
 
-        if (WP_DEBUG) {
-            error_log("=== Filtering Listing Attachments ===");
-            error_log("Before filtering: " . count($attachments));
-        }
 
         $filtered = array_filter($attachments, function ($attachment) {
             $attachment_id = is_object($attachment) ? $attachment->get_id() : $attachment;
             return !get_post_meta($attachment_id, 'price_extra_image', true);
         });
-
-        if (WP_DEBUG) {
-            error_log("After filtering: " . count($filtered));
-        }
 
         return $filtered;
     }
@@ -1310,9 +1276,6 @@ public function save_price_extras_images($post_id, $post, $update) {
      */
     public function setup_admin_handlers()
     {
-        if (WP_DEBUG) {
-            error_log('Setting up admin handlers for Price Extras');
-        }
 
         // Asegurar que el formulario pueda manejar archivos
         add_action('post_edit_form_tag', function () {
@@ -1349,9 +1312,6 @@ public function save_price_extras_images($post_id, $post, $update) {
     /**
      * Filtra los tamaños de imagen para los extras
      */
-    /**
-     * Filtra los tamaños de imagen para los extras
-     */
     public function filter_image_sizes($sizes, $metadata)
     {
         // El ID del attachment viene en los metadatos o podemos obtenerlo del contexto
@@ -1370,12 +1330,6 @@ public function save_price_extras_images($post_id, $post, $update) {
             return $sizes;
         }
 
-        if (WP_DEBUG) {
-            error_log('=== Filter Image Sizes ===');
-            error_log('Attachment ID: ' . $attachment_id);
-            error_log('Original sizes: ' . print_r($sizes, true));
-        }
-
         if (get_post_meta($attachment_id, 'price_extra_image', true)) {
             // Solo mantener nuestros tamaños personalizados
             $our_sizes = array(
@@ -1386,11 +1340,6 @@ public function save_price_extras_images($post_id, $post, $update) {
 
             // Filtrar tamaños nulos
             $our_sizes = array_filter($our_sizes);
-
-            if (WP_DEBUG) {
-                error_log('Filtered sizes for price extra image');
-                error_log('Final sizes: ' . print_r($our_sizes, true));
-            }
 
             return $our_sizes;
         }
@@ -1415,18 +1364,9 @@ public function save_price_extras_images($post_id, $post, $update) {
         }
 
         if ($attachment_id && get_post_meta($attachment_id, 'price_extra_image', true)) {
-            if (WP_DEBUG) {
-                error_log('=== Filtering Image Size Names ===');
-                error_log('Attachment ID: ' . $attachment_id);
-                error_log('Original sizes: ' . print_r($sizes, true));
-            }
 
             // Solo retornar nuestros tamaños
             $our_sizes = ['price-extra-thumbnail', 'price-extra-card', 'price-extra-popup'];
-
-            if (WP_DEBUG) {
-                error_log('Filtered size names: ' . print_r($our_sizes, true));
-            }
 
             return $our_sizes;
         }
@@ -1532,10 +1472,6 @@ public function cleanup_orphaned_images() {
     
     $orphaned_images = $wpdb->get_col($query);
     
-    if (WP_DEBUG) {
-        error_log('=== Iniciando limpieza de imágenes huérfanas ===');
-        error_log('Total de imágenes huérfanas a limpiar: ' . count($orphaned_images));
-    }
     
     foreach ($orphaned_images as $image_id) {
         // Verificar una última vez si la imagen todavía está marcada como huérfana
@@ -1543,15 +1479,9 @@ public function cleanup_orphaned_images() {
             // Ahora sí podemos eliminar la imagen con seguridad
             wp_delete_attachment($image_id, true);
             
-            if (WP_DEBUG) {
-                error_log('Eliminada imagen huérfana: ' . $image_id);
-            }
         }
     }
-    
-    if (WP_DEBUG) {
-        error_log('=== Limpieza de imágenes huérfanas completada ===');
-    }
+
 }
 
 }

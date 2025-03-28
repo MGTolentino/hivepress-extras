@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Hivepress Price Extras Description
- * Description: Muestra los extras de precio en la página de visualización del listing
+ * Description: Muestra los extras con descripción en single hp_listing
  * Version: 2.0.0
  * Author: Miguel Tolentino
  * Text Domain: hivepress-price-extras-description
@@ -11,12 +11,10 @@
 // Exit if accessed directly.
 defined('ABSPATH') || exit;
 
-// Definir constante para la ruta base del plugin
 if (!defined('HPPED_PATH')) {
     define('HPPED_PATH', plugin_dir_path(__FILE__));
 }
 
-// Register extension directory
 add_filter(
     'hivepress/v1/extensions',
     function($extensions) {

@@ -13,12 +13,6 @@ defined('ABSPATH') || exit;
 class Price_Extras_Description
 {
 
-    /**
-     * Class constructor.
-     */
-    /**
-     * Class constructor.
-     */
     public function __construct()
     {
 
@@ -26,14 +20,10 @@ class Price_Extras_Description
         add_filter('hivepress/v1/models/listing/attributes', [$this, 'add_description_to_price_extras']);
         add_action('hivepress/v1/models/listing/update', [$this, 'handle_price_extras_update'], 20, 1);
         add_action('wp_scheduled_delete', [$this, 'cleanup_orphaned_images']);
-        add_action('hivepress/v1/models/listing/update', function ($listing_id) {
-        }, 5);  // Prioridad 5 para que se ejecute antes que nuestro hook
+        add_action('hivepress/v1/models/listing/update', function ($listing_id) {}, 5);
 
-        // En class-price-extras-description.php, en el constructor:
-        add_action('hivepress/v1/models/listing/update', function ($listing_id) {
-        }, 5);
+        add_action('hivepress/v1/models/listing/update', function ($listing_id) {}, 5);
 
-        // Filtros para HivePress
         add_filter('hivepress/v1/models/listing/get_images', [$this, 'filter_listing_images'], 1, 2);
         add_filter('hivepress/v1/models/listing/get_images__id', [$this, 'filter_listing_images'], 1, 2);
 
@@ -46,6 +36,17 @@ class Price_Extras_Description
             }
             return $values;
         }, 1, 2);
+
+        add_filter('hivepress/v1/models/listing/attributes', function ($attributes) {
+                    if (isset($attributes['images'])) {
+                        $attributes['images']['edit_field']['exclude'] = ['price_extra_image'];
+                    }
+                    return $attributes;
+                });
+        
+        add_filter('hivepress/v1/models/listing/get_images', function ($images, $listing) {
+                    return $images;
+                }, 5, 2);
 
         // Filtro para excluir nuestras imágenes de las consultas de attachments
         add_filter('ajax_query_attachments_args', function ($args) {
@@ -88,30 +89,6 @@ class Price_Extras_Description
 
         // Filtros para formularios
         add_filter('hivepress/v1/forms', [$this, 'modify_forms'], 10, 2);
-
-        // Hooks para debugging de attachments
-        if (WP_DEBUG) {
-            add_action('add_attachment', function ($post_id) {
-                error_log("=== New Attachment Added ===");
-                error_log("Attachment ID: $post_id");
-                error_log("Meta: " . print_r(get_post_meta($post_id), true));
-            });
-        }
-
-        // Prevenir que HivePress procese nuestras imágenes
-        add_filter('hivepress/v1/models/listing/attributes', function ($attributes) {
-            if (isset($attributes['images'])) {
-                $attributes['images']['edit_field']['exclude'] = ['price_extra_image'];
-            }
-            return $attributes;
-        });
-
-        add_filter('hivepress/v1/models/listing/get_images', function ($images, $listing) {
-            error_log('=== HivePress Getting Images ===');
-            error_log('Listing ID: ' . $listing->get_id());
-            error_log('Images before filter: ' . print_r($images, true));
-            return $images;
-        }, 5, 2);
 
         // Agregar soporte para admin
         if (is_admin()) {
@@ -158,8 +135,6 @@ class Price_Extras_Description
             return $form;
         });
 
-
-
         add_filter('hivepress/v1/models/listing/fill_fields', function ($values) {
             if (isset($values['price_extras']) && is_array($values['price_extras'])) {
                 foreach ($values['price_extras'] as &$extra) {
@@ -180,21 +155,12 @@ class Price_Extras_Description
             }
             return $values;
         });
-
     }
 
-    /**
-     * Controla la generación de tamaños de imagen específicos para extras
-     */
     private function manage_image_sizes($attachment_id)
     {
         if (!get_post_meta($attachment_id, 'price_extra_image', true)) {
             return;
-        }
-
-        if (WP_DEBUG) {
-            error_log('=== Managing Image Sizes for Price Extra ===');
-            error_log('Attachment ID: ' . $attachment_id);
         }
 
         // Guardar la configuración global actual
@@ -236,11 +202,6 @@ class Price_Extras_Description
             'crop' => true
         );
 
-        if (WP_DEBUG) {
-            error_log('Temporary sizes configured');
-            error_log('Current sizes: ' . print_r($_wp_additional_image_sizes, true));
-        }
-
         // Restaurar la configuración original después del procesamiento
         add_action('wp_generate_attachment_metadata', function ($metadata, $attach_id) use ($original_sizes, $original_intermediate_sizes, $attachment_id) {
             if ($attach_id == $attachment_id) {
@@ -259,9 +220,6 @@ class Price_Extras_Description
                     }
                 }
 
-                if (WP_DEBUG) {
-                    error_log('Original image sizes restored');
-                }
             }
             return $metadata;
         }, 999, 2);
@@ -275,13 +233,8 @@ class Price_Extras_Description
         }, 999);
     }
 
-    /**
-     * Método público para manejar los tamaños de imagen
-     */
     public function handle_image_sizes($attachment_id)
     {
-        error_log('=== Starting handle_image_sizes ===');
-        error_log('Attachment ID: ' . $attachment_id);
 
         // Remover todos los tamaños por defecto de WordPress
         add_filter('intermediate_image_sizes', function ($sizes) {
@@ -291,13 +244,9 @@ class Price_Extras_Description
         // Llamar al método privado
         $result = $this->manage_image_sizes($attachment_id);
 
-        error_log('=== Finished handle_image_sizes ===');
         return $result;
     }
 
-    /**
-     * Initialize the component.
-     */
     public static function init()
     {
         return new self();
@@ -365,263 +314,212 @@ class Price_Extras_Description
         return $attributes;
     }
 
-    /**
- * Migra imágenes de la carpeta temporal a la carpeta del listing real
- */
-private function migrate_temp_images($listing_id) {
-    if (WP_DEBUG) {
-        error_log('=== Starting temp images migration ===');
-        error_log('Listing ID: ' . $listing_id);
-    }
-    
-    global $wpdb;
-    
-    // Buscar todas las imágenes temporales
-    $temp_images = $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT p.ID FROM {$wpdb->posts} p
+    private function migrate_temp_images($listing_id)
+    {
+
+        global $wpdb;
+
+        // Buscar todas las imágenes temporales
+        $temp_images = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT p.ID FROM {$wpdb->posts} p
             JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id AND pm1.meta_key = 'price_extra_temp_listing' AND pm1.meta_value = '1'
             JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id AND pm2.meta_key = 'price_extra_image' AND pm2.meta_value = '1'
             WHERE p.post_type = 'attachment'"
-        )
-    );
-    
-    if (empty($temp_images)) {
-        if (WP_DEBUG) {
-            error_log('No temporary images found to migrate');
-        }
-        return;
-    }
-    
-    if (WP_DEBUG) {
-        error_log('Found ' . count($temp_images) . ' temporary images to migrate');
-    }
-    
-    $upload_dir = wp_upload_dir();
-    $temp_base_path = $upload_dir['basedir'] . '/price-extras/temp';
-    $listing_base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
-    
-    foreach ($temp_images as $image) {
-        $image_id = $image->ID;
-        $extra_key = get_post_meta($image_id, 'price_extra_key', true);
-        
-        if (!$extra_key) {
-            if (WP_DEBUG) {
-                error_log('Skipping image ' . $image_id . ' - no extra key found');
-            }
-            continue;
-        }
-        
-        // Obtener ruta actual del archivo
-        $current_file = get_attached_file($image_id);
-        if (!$current_file || !file_exists($current_file)) {
-            if (WP_DEBUG) {
-                error_log('File not found for image ' . $image_id);
-            }
-            continue;
-        }
-        
-        // Crear carpeta destino
-        $extra_path = $listing_base_path . '/' . $extra_key;
-        if (!is_dir($extra_path)) {
-            wp_mkdir_p($extra_path);
-        }
-        
-        // Mover archivo principal
-        $filename = basename($current_file);
-        $new_file = $extra_path . '/' . $filename;
-        
-        if (WP_DEBUG) {
-            error_log('Moving image ' . $image_id . ' from ' . $current_file . ' to ' . $new_file);
-        }
-        
-        if (rename($current_file, $new_file)) {
-            // Obtener metadatos para mover miniaturas
-            $metadata = wp_get_attachment_metadata($image_id);
-            if (!empty($metadata['sizes'])) {
-                $current_dir = dirname($current_file);
-                foreach ($metadata['sizes'] as $size) {
-                    if (isset($size['file'])) {
-                        $old_thumb = $current_dir . '/' . $size['file'];
-                        $new_thumb = $extra_path . '/' . $size['file'];
-                        if (file_exists($old_thumb)) {
-                            rename($old_thumb, $new_thumb);
-                        }
-                    }
-                }
-            }
-            
-            // Actualizar metadatos
-            update_post_meta($image_id, 'price_extra_temp_listing', '0');
-            update_post_meta($image_id, 'price_extra_listing_id', $listing_id);
-            update_post_meta($image_id, 'price_extra_temporary', '0');
-            update_attached_file($image_id, $new_file);
-            
-            // Actualizar metadatos del archivo
-            if ($metadata) {
-                // Actualizar ruta del archivo principal
-                if (isset($metadata['file'])) {
-                    $metadata['file'] = str_replace(
-                        'price-extras/temp/' . $extra_key,
-                        'price-extras/' . $listing_id . '/' . $extra_key,
-                        $metadata['file']
-                    );
-                }
-                wp_update_attachment_metadata($image_id, $metadata);
-            }
-            
-            if (WP_DEBUG) {
-                error_log('Successfully migrated image ' . $image_id);
-            }
-        } else {
-            if (WP_DEBUG) {
-                error_log('Failed to move file for image ' . $image_id);
-            }
-        }
-    }
-    
-    // Limpiar carpeta temporal si está vacía
-    if (is_dir($temp_base_path)) {
-        $is_empty = true;
-        $dir_contents = scandir($temp_base_path);
-        foreach ($dir_contents as $item) {
-            if ($item != '.' && $item != '..') {
-                $is_empty = false;
-                break;
-            }
-        }
-        
-        if ($is_empty) {
-            rmdir($temp_base_path);
-            if (WP_DEBUG) {
-                error_log('Removed empty temp directory');
-            }
-        }
-    }
-    
-    if (WP_DEBUG) {
-        error_log('=== Finished temp images migration ===');
-    }
-}
+            )
+        );
 
-  /**************************************
-* FUNCIÓN: Process_price_extras_images
-* Maneja el procesamiento de imágenes y carpetas
-**************************************/
-private function process_price_extras_images($listing_id, $extras) {
-    global $wpdb;
- 
-    /**************************************
-     * PASO 1: Validación inicial
-     **************************************/
-    if (empty($extras) || !is_array($extras)) {
-        if (WP_DEBUG) {
-            error_log("No extras found for listing {$listing_id}");
+        if (empty($temp_images)) {
+            if (WP_DEBUG) {
+                error_log('No temporary images found to migrate');
+            }
+            return;
         }
-        return;
-    }
- 
-    /**************************************
-     * PASO 2: Preparación de rutas
-     **************************************/
-    $upload_dir = wp_upload_dir();
-    $base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
- 
-    /**************************************
-     * PASO 3: Procesamiento de cada extra
-     **************************************/
-    foreach ($extras as $extra) {
-        if (empty($extra['name']) || empty($extra['extra_images'])) {
-            continue;
-        }
- 
-        $extra_name = sanitize_title($extra['name']);
-        $extra_path = $base_path . '/' . $extra_name;
-        
-        // Convertir extra_images a array de IDs
-        $image_ids = is_string($extra['extra_images']) ? 
-            explode(',', $extra['extra_images']) : 
-            (is_array($extra['extra_images']) ? $extra['extra_images'] : [$extra['extra_images']]);
- 
-        /**************************************
-         * PASO 4: Procesamiento de cada imagen
-         **************************************/
-        foreach ($image_ids as $image_id) {
-            $image_id = intval($image_id);
-            
-            if (!get_post_meta($image_id, 'price_extra_image', true)) {
+
+
+        $upload_dir = wp_upload_dir();
+        $temp_base_path = $upload_dir['basedir'] . '/price-extras/temp';
+        $listing_base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
+
+        foreach ($temp_images as $image) {
+            $image_id = $image->ID;
+            $extra_key = get_post_meta($image_id, 'price_extra_key', true);
+
+            if (!$extra_key) {
+                if (WP_DEBUG) {
+                    error_log('Skipping image ' . $image_id . ' - no extra key found');
+                }
                 continue;
             }
- 
-            $current_key = get_post_meta($image_id, 'price_extra_key', true);
-            $is_temporary = get_post_meta($image_id, 'price_extra_temporary', true);
+
+            // Obtener ruta actual del archivo
             $current_file = get_attached_file($image_id);
-
-             // Añadir estos logs aquí
-            if (WP_DEBUG) {
-                error_log("Processing image ID: {$image_id}");
-                error_log("Current directory: " . dirname($current_file));
-                error_log("Target directory: {$extra_path}");
-                error_log("Current key: {$current_key}");
-                error_log("Extra name: {$extra_name}");
-                error_log("Is temporary: " . ($is_temporary ? 'true' : 'false'));
-            }
- 
             if (!$current_file || !file_exists($current_file)) {
+                if (WP_DEBUG) {
+                    error_log('File not found for image ' . $image_id);
+                }
                 continue;
             }
- 
-            $current_dir = dirname($current_file);
- 
-            /**************************************
-             * PASO 5: Manejo de imágenes temporales
-             **************************************/
-            if ($is_temporary) {
-                if (!is_dir($extra_path)) {
-                    wp_mkdir_p($extra_path);
-                }
- 
-                $filename = basename($current_file);
-                $new_file = $extra_path . '/' . $filename;
- 
-                if (rename($current_file, $new_file)) {
-                    // Mover miniaturas
-                    $metadata = wp_get_attachment_metadata($image_id);
-                    if (!empty($metadata['sizes'])) {
-                        foreach ($metadata['sizes'] as $size) {
-                            if (isset($size['file'])) {
-                                $old_thumb = $current_dir . '/' . $size['file'];
-                                $new_thumb = $extra_path . '/' . $size['file'];
-                                if (file_exists($old_thumb)) {
-                                    rename($old_thumb, $new_thumb);
-                                }
+
+            // Crear carpeta destino
+            $extra_path = $listing_base_path . '/' . $extra_key;
+            if (!is_dir($extra_path)) {
+                wp_mkdir_p($extra_path);
+            }
+
+            // Mover archivo principal
+            $filename = basename($current_file);
+            $new_file = $extra_path . '/' . $filename;
+
+            if (rename($current_file, $new_file)) {
+                // Obtener metadatos para mover miniaturas
+                $metadata = wp_get_attachment_metadata($image_id);
+                if (!empty($metadata['sizes'])) {
+                    $current_dir = dirname($current_file);
+                    foreach ($metadata['sizes'] as $size) {
+                        if (isset($size['file'])) {
+                            $old_thumb = $current_dir . '/' . $size['file'];
+                            $new_thumb = $extra_path . '/' . $size['file'];
+                            if (file_exists($old_thumb)) {
+                                rename($old_thumb, $new_thumb);
                             }
                         }
                     }
- 
-                    // Actualizar metadatos
-                    update_post_meta($image_id, 'price_extra_temporary', false);
-                    update_post_meta($image_id, 'price_extra_key', $extra_name);
-                    update_attached_file($image_id, $new_file);
+                }
+
+                update_post_meta($image_id, 'price_extra_temp_listing', '0');
+                update_post_meta($image_id, 'price_extra_listing_id', $listing_id);
+                update_post_meta($image_id, 'price_extra_temporary', '0');
+                update_attached_file($image_id, $new_file);
+
+                // Actualizar metadatos del archivo
+                if ($metadata) {
+                    // Actualizar ruta del archivo principal
+                    if (isset($metadata['file'])) {
+                        $metadata['file'] = str_replace(
+                            'price-extras/temp/' . $extra_key,
+                            'price-extras/' . $listing_id . '/' . $extra_key,
+                            $metadata['file']
+                        );
+                    }
                     wp_update_attachment_metadata($image_id, $metadata);
                 }
- 
-                // Limpiar carpeta temporal si está vacía
-                if (is_dir($current_dir) && count(scandir($current_dir)) <= 2) {
-                    rmdir($current_dir);
+            } else {
+                if (WP_DEBUG) {
+                    error_log('Failed to move file for image ' . $image_id);
                 }
             }
-            /**************************************
-             * PASO 6: Manejo de carpetas existentes
-             **************************************/
-            else if ($current_dir !== $extra_path) {
-                if (WP_DEBUG) {
-                    error_log("Renombrando carpeta de {$current_dir} a {$extra_path}");
+        }
+
+        // Limpiar carpeta temporal si está vacía
+        if (is_dir($temp_base_path)) {
+            $is_empty = true;
+            $dir_contents = scandir($temp_base_path);
+            foreach ($dir_contents as $item) {
+                if ($item != '.' && $item != '..') {
+                    $is_empty = false;
+                    break;
                 }
-             
-                // Primero obtener todas las imágenes en la carpeta actual
-                $images_in_folder = $wpdb->get_col($wpdb->prepare(
-                    "SELECT p.ID 
+            }
+
+            if ($is_empty) {
+                rmdir($temp_base_path);
+                if (WP_DEBUG) {
+                    error_log('Removed empty temp directory');
+                }
+            }
+        }
+
+    }
+
+    private function process_price_extras_images($listing_id, $extras)
+    {
+        global $wpdb;
+
+        //Validación inicial
+        if (empty($extras) || !is_array($extras)) {
+            if (WP_DEBUG) {
+                error_log("No extras found for listing {$listing_id}");
+            }
+            return;
+        }
+
+        //Preparar rutas
+        $upload_dir = wp_upload_dir();
+        $base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
+
+        //Procesar cada extra
+        foreach ($extras as $extra) {
+            if (empty($extra['name']) || empty($extra['extra_images'])) {
+                continue;
+            }
+
+            $extra_name = sanitize_title($extra['name']);
+            $extra_path = $base_path . '/' . $extra_name;
+
+            // Convertir extra_images a array de IDs
+            $image_ids = is_string($extra['extra_images']) ?
+                explode(',', $extra['extra_images']) : (is_array($extra['extra_images']) ? $extra['extra_images'] : [$extra['extra_images']]);
+
+            //Procesar cada imágen
+            foreach ($image_ids as $image_id) {
+                $image_id = intval($image_id);
+
+                if (!get_post_meta($image_id, 'price_extra_image', true)) {
+                    continue;
+                }
+
+                $current_key = get_post_meta($image_id, 'price_extra_key', true);
+                $is_temporary = get_post_meta($image_id, 'price_extra_temporary', true);
+                $current_file = get_attached_file($image_id);
+
+                if (!$current_file || !file_exists($current_file)) {
+                    continue;
+                }
+
+                $current_dir = dirname($current_file);
+
+                //Manejar imágenes temporales
+                if ($is_temporary) {
+                    if (!is_dir($extra_path)) {
+                        wp_mkdir_p($extra_path);
+                    }
+
+                    $filename = basename($current_file);
+                    $new_file = $extra_path . '/' . $filename;
+
+                    if (rename($current_file, $new_file)) {
+                        // Mover miniaturas
+                        $metadata = wp_get_attachment_metadata($image_id);
+                        if (!empty($metadata['sizes'])) {
+                            foreach ($metadata['sizes'] as $size) {
+                                if (isset($size['file'])) {
+                                    $old_thumb = $current_dir . '/' . $size['file'];
+                                    $new_thumb = $extra_path . '/' . $size['file'];
+                                    if (file_exists($old_thumb)) {
+                                        rename($old_thumb, $new_thumb);
+                                    }
+                                }
+                            }
+                        }
+
+                        update_post_meta($image_id, 'price_extra_temporary', false);
+                        update_post_meta($image_id, 'price_extra_key', $extra_name);
+                        update_attached_file($image_id, $new_file);
+                        wp_update_attachment_metadata($image_id, $metadata);
+                    }
+
+                    // Limpiar carpeta temporal si está vacía
+                    if (is_dir($current_dir) && count(scandir($current_dir)) <= 2) {
+                        rmdir($current_dir);
+                    }
+                }
+                //Manejo de carpetas existentes
+                else if ($current_dir !== $extra_path) {
+
+                    // Primero obtener todas las imágenes en la carpeta actual
+                    $images_in_folder = $wpdb->get_col($wpdb->prepare(
+                        "SELECT p.ID 
                      FROM {$wpdb->prefix}posts p
                      INNER JOIN {$wpdb->prefix}postmeta pm1 ON p.ID = pm1.post_id
                      INNER JOIN {$wpdb->prefix}postmeta pm2 ON p.ID = pm2.post_id
@@ -630,89 +528,79 @@ private function process_price_extras_images($listing_id, $extras) {
                      AND pm1.meta_value = '1'
                      AND pm2.meta_key = 'price_extra_listing_id'
                      AND pm2.meta_value = %d",
-                    $listing_id
-                ));
-             
-                // Renombrar la carpeta
-                if (rename($current_dir, $extra_path)) {
-                    if (WP_DEBUG) {
-                        error_log("Carpeta renombrada correctamente");
-                        error_log("Actualizando metadatos para todas las imágenes en la carpeta");
-                    }
-             
-                    // Actualizar metadatos para todas las imágenes
-                    foreach ($images_in_folder as $img_id) {
-                        $img_file = get_attached_file($img_id);
-                        // Verificar si esta imagen estaba en la carpeta anterior
-                        if (strpos($img_file, $current_dir) === 0) {
-                            // Actualizar la ruta del archivo
-                            $new_img_file = str_replace($current_dir, $extra_path, $img_file);
-                            update_post_meta($img_id, 'price_extra_key', $extra_name);
-                            update_attached_file($img_id, $new_img_file);
-             
-                            // Actualizar metadata
-                            $img_metadata = wp_get_attachment_metadata($img_id);
-                            if (!empty($img_metadata)) {
-                                if (isset($img_metadata['file'])) {
-                                    $img_metadata['file'] = str_replace(
-                                        dirname($img_metadata['file']),
-                                        'price-extras/' . $listing_id . '/' . $extra_name,
-                                        $img_metadata['file']
-                                    );
+                        $listing_id
+                    ));
+
+                    // Renombrar la carpeta
+                    if (rename($current_dir, $extra_path)) {
+
+                        // Actualizar metadatos para todas las imágenes
+                        foreach ($images_in_folder as $img_id) {
+                            $img_file = get_attached_file($img_id);
+                            // Verificar si esta imagen estaba en la carpeta anterior
+                            if (strpos($img_file, $current_dir) === 0) {
+                                // Actualizar la ruta del archivo
+                                $new_img_file = str_replace($current_dir, $extra_path, $img_file);
+                                update_post_meta($img_id, 'price_extra_key', $extra_name);
+                                update_attached_file($img_id, $new_img_file);
+
+                                // Actualizar metadata
+                                $img_metadata = wp_get_attachment_metadata($img_id);
+                                if (!empty($img_metadata)) {
+                                    if (isset($img_metadata['file'])) {
+                                        $img_metadata['file'] = str_replace(
+                                            dirname($img_metadata['file']),
+                                            'price-extras/' . $listing_id . '/' . $extra_name,
+                                            $img_metadata['file']
+                                        );
+                                    }
+                                    wp_update_attachment_metadata($img_id, $img_metadata);
                                 }
-                                wp_update_attachment_metadata($img_id, $img_metadata);
-                            }
-             
-                            if (WP_DEBUG) {
-                                error_log("Actualizados metadatos para imagen ID: {$img_id}");
-                                error_log("Nueva ruta: {$new_img_file}");
                             }
                         }
                     }
                 }
-             }
-             
-        }
-    }
-    
-    // Recolección mejorada de IDs y carpetas activas después del renombrado
-$active_image_ids = [];
-$active_folders = [];
-
-// Primero, verificar los extras del formulario actual
-foreach ($extras as $extra) {
-    if (!empty($extra['name'])) {
-        $folder_name = sanitize_title($extra['name']);
-        $active_folders[] = $folder_name;
-        
-        // Procesar imágenes si existen
-        if (!empty($extra['extra_images'])) {
-            // Normalizar extra_images a array
-            $image_ids = [];
-            
-            if (is_array($extra['extra_images'])) {
-                $image_ids = $extra['extra_images'];
-            } elseif (is_string($extra['extra_images'])) {
-                // Dividir por comas si es necesario
-                $image_ids = strpos($extra['extra_images'], ',') !== false ? 
-                           explode(',', $extra['extra_images']) : 
-                           [$extra['extra_images']];
             }
-            
-            // Sanitizar y agregar cada ID
-            foreach ($image_ids as $id) {
-                $clean_id = intval(trim($id));
-                if ($clean_id > 0) {
-                    $active_image_ids[] = $clean_id;
+        }
+
+        // Recolección mejorada de IDs y carpetas activas después del renombrado
+        $active_image_ids = [];
+        $active_folders = [];
+
+        // Primero, verificar los extras del formulario actual
+        foreach ($extras as $extra) {
+            if (!empty($extra['name'])) {
+                $folder_name = sanitize_title($extra['name']);
+                $active_folders[] = $folder_name;
+
+                // Procesar imágenes si existen
+                if (!empty($extra['extra_images'])) {
+                    // Normalizar extra_images a array
+                    $image_ids = [];
+
+                    if (is_array($extra['extra_images'])) {
+                        $image_ids = $extra['extra_images'];
+                    } elseif (is_string($extra['extra_images'])) {
+                        // Dividir por comas si es necesario
+                        $image_ids = strpos($extra['extra_images'], ',') !== false ?
+                            explode(',', $extra['extra_images']) :
+                            [$extra['extra_images']];
+                    }
+
+                    // Sanitizar y agregar cada ID
+                    foreach ($image_ids as $id) {
+                        $clean_id = intval(trim($id));
+                        if ($clean_id > 0) {
+                            $active_image_ids[] = $clean_id;
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-// Segundo, buscar imágenes recientes que podrían no estar en el formulario todavía
-$recent_query = $wpdb->prepare(
-    "SELECT p.ID 
+        // Segundo, buscar imágenes recientes que podrían no estar en el formulario todavía
+        $recent_query = $wpdb->prepare(
+            "SELECT p.ID 
      FROM {$wpdb->prefix}posts p
      INNER JOIN {$wpdb->prefix}postmeta pm1 ON p.ID = pm1.post_id
      INNER JOIN {$wpdb->prefix}postmeta pm2 ON p.ID = pm2.post_id
@@ -722,31 +610,23 @@ $recent_query = $wpdb->prepare(
      AND pm2.meta_key = 'price_extra_listing_id'
      AND pm2.meta_value = %d
      AND p.post_date > %s",
-    $listing_id,
-    date('Y-m-d H:i:s', strtotime('-10 minutes'))
-);
+            $listing_id,
+            date('Y-m-d H:i:s', strtotime('-10 minutes'))
+        );
 
-$recent_images = $wpdb->get_col($recent_query);
-if (!empty($recent_images)) {
-    foreach ($recent_images as $recent_id) {
-        $active_image_ids[] = intval($recent_id);
-    }
-}
+        $recent_images = $wpdb->get_col($recent_query);
+        if (!empty($recent_images)) {
+            foreach ($recent_images as $recent_id) {
+                $active_image_ids[] = intval($recent_id);
+            }
+        }
 
-// Eliminar duplicados
-$active_image_ids = array_unique($active_image_ids);
+        // Eliminar duplicados
+        $active_image_ids = array_unique($active_image_ids);
 
-   if (WP_DEBUG) {
-       error_log('IDs activos después del renombrado: ' . print_r($active_image_ids, true));
-       error_log('Carpetas activas después del renombrado: ' . print_r($active_folders, true));
-   }
-
-        /**************************************
-* PASO 7: Proceso de borrado seguro
-**************************************/
-// Obtener todas las imágenes de extras de este listing
-$query = $wpdb->prepare(
-    "SELECT DISTINCT p.ID 
+        //Proceso de borrado
+        $query = $wpdb->prepare(
+            "SELECT DISTINCT p.ID 
     FROM {$wpdb->prefix}posts p
     INNER JOIN {$wpdb->prefix}postmeta pm_extra ON p.ID = pm_extra.post_id
     INNER JOIN {$wpdb->prefix}postmeta pm_listing ON p.ID = pm_listing.post_id
@@ -755,196 +635,138 @@ $query = $wpdb->prepare(
     AND pm_extra.meta_value = '1'
     AND pm_listing.meta_key = 'price_extra_listing_id'
     AND pm_listing.meta_value = %d",
-    $listing_id
-);
+            $listing_id
+        );
 
-$all_images = $wpdb->get_results($query);
+        $all_images = $wpdb->get_results($query);
 
-if (WP_DEBUG) {
-    error_log('=== Iniciando proceso de borrado seguro ===');
-    error_log('Total de imágenes encontradas: ' . count($all_images));
-    error_log('IDs activos en hp_price_extras: ' . print_r($active_image_ids, true));
-}
-
-// Conservar imágenes recién migradas (desde hace menos de 5 minutos)
-$recently_active_ids = [];
-foreach ($all_images as $image) {
-    $updated_time = get_post_meta($image->ID, '_wp_attachment_metadata_updated', true);
-    if (empty($updated_time)) {
-        $updated_time = get_post_meta($image->ID, 'price_extra_upload_time', true);
-    }
-    
-    // Si la imagen fue actualizada en los últimos 5 minutos, considerarla activa
-    if ($updated_time && (strtotime($updated_time) > strtotime('-5 minutes'))) {
-        $recently_active_ids[] = intval($image->ID);
-        if (WP_DEBUG) {
-            error_log('Imagen reciente considerada activa: ' . $image->ID);
-        }
-    }
-}
-
-// Combinar IDs activos con IDs recientes
-$protected_image_ids = array_unique(array_merge($active_image_ids, $recently_active_ids));
-
-// Procesar cada imagen de manera segura
-foreach ($all_images as $image) {
-    if (!in_array($image->ID, $protected_image_ids)) {
-        if (WP_DEBUG) {
-            error_log('Marcando imagen como huérfana (no eliminada físicamente): ' . $image->ID);
-        }
-        
-        // No eliminar físicamente, solo marcar como huérfana
-        update_post_meta($image->ID, 'price_extra_orphaned', '1');
-        update_post_meta($image->ID, 'price_extra_orphaned_time', current_time('mysql'));
-        
-        // Opcional: Mover a una carpeta de "huérfanos" en lugar de eliminar
-        $file_path = get_attached_file($image->ID);
-        if ($file_path && file_exists($file_path)) {
-            $orphan_dir = $upload_dir['basedir'] . '/price-extras/orphaned/' . $listing_id;
-            if (!is_dir($orphan_dir)) {
-                wp_mkdir_p($orphan_dir);
+        // Conservar imágenes recién migradas (desde hace menos de 5 minutos)
+        $recently_active_ids = [];
+        foreach ($all_images as $image) {
+            $updated_time = get_post_meta($image->ID, '_wp_attachment_metadata_updated', true);
+            if (empty($updated_time)) {
+                $updated_time = get_post_meta($image->ID, 'price_extra_upload_time', true);
             }
-            
-            $filename = basename($file_path);
-            $new_path = $orphan_dir . '/' . $filename;
-            
-            // Solo registrar información para depuración, no mover todavía
-            if (WP_DEBUG) {
-                error_log('Archivo huérfano: ' . $file_path);
-                error_log('Podría moverse a: ' . $new_path);
-            }
-        }
-    }
-}
 
-// No eliminar carpetas automáticamente, solo registrar información
-if (is_dir($base_path)) {
-    $folders = glob($base_path . '/*', GLOB_ONLYDIR);
-    
-    foreach ($folders as $folder) {
-        $folder_name = basename($folder);
-        
-        // Si no está en extras activos
-        if (!in_array($folder_name, $active_folders)) {
-            if (WP_DEBUG) {
-                error_log('Carpeta no activa detectada (no eliminada): ' . $folder);
-                
-                // Verificar si hay archivos dentro
-                $files = glob($folder . '/*');
-                if (count($files) > 0) {
-                    error_log('La carpeta contiene ' . count($files) . ' archivos');
+            // Si la imagen fue actualizada en los últimos 5 minutos, considerarla activa
+            if ($updated_time && (strtotime($updated_time) > strtotime('-5 minutes'))) {
+                $recently_active_ids[] = intval($image->ID);
+                if (WP_DEBUG) {
+                    error_log('Imagen reciente considerada activa: ' . $image->ID);
                 }
             }
         }
-    }
-}
 
-if (WP_DEBUG) {
-    error_log('=== Proceso de borrado seguro completado ===');
-}
+        // Combinar IDs activos con IDs recientes
+        $protected_image_ids = array_unique(array_merge($active_image_ids, $recently_active_ids));
 
- }
+        // Procesar cada imagen de manera segura
+        foreach ($all_images as $image) {
+            if (!in_array($image->ID, $protected_image_ids)) {
 
- public function handle_price_extras_update($listing_id) {
-    // PASO 1: Preparación
-    if (is_object($listing_id)) {
-        $listing_id = $listing_id->get_id();
-    }
- 
-    if (WP_DEBUG) {
-        error_log('=== Starting handle_price_extras_update ===');
-        error_log('Listing ID: ' . $listing_id);
-        
-        // Revisar ambos tipos de metadatos
-        $price_extras = get_post_meta($listing_id, 'price_extras', true);
-        $hp_price_extras = get_post_meta($listing_id, 'hp_price_extras', true);
-        
-        error_log('price_extras data:');
-        error_log(print_r($price_extras, true));
-        error_log('hp_price_extras data:');
-        error_log(print_r($hp_price_extras, true));
-    }
- 
-    // PASO 1.5: Intentar migrar imágenes temporales
-    $this->migrate_temp_images($listing_id);
- 
-    // PASO 2: Obtener datos
-    $extras = get_post_meta($listing_id, 'hp_price_extras', true);
+                // No eliminar físicamente, solo marcar como huérfana
+                update_post_meta($image->ID, 'price_extra_orphaned', '1');
+                update_post_meta($image->ID, 'price_extra_orphaned_time', current_time('mysql'));
 
-    if (WP_DEBUG) {
-        error_log('hp_price_extras data:');
-        error_log(print_r($extras, true));
-    }
+                $file_path = get_attached_file($image->ID);
+                if ($file_path && file_exists($file_path)) {
+                    $orphan_dir = $upload_dir['basedir'] . '/price-extras/orphaned/' . $listing_id;
+                    if (!is_dir($orphan_dir)) {
+                        wp_mkdir_p($orphan_dir);
+                    }
 
-    if (empty($extras) || !is_array($extras)) {
-        if (WP_DEBUG) {
-            error_log("No extras found for listing {$listing_id}");
+                    $filename = basename($file_path);
+                    $new_path = $orphan_dir . '/' . $filename;
+
+                }
+            }
         }
-        return;
+
+        // No eliminar carpetas automáticamente, solo registrar información
+        if (is_dir($base_path)) {
+            $folders = glob($base_path . '/*', GLOB_ONLYDIR);
+
+            foreach ($folders as $folder) {
+                $folder_name = basename($folder);
+
+                // Si no está en extras activos
+                if (!in_array($folder_name, $active_folders)) {
+                    if (WP_DEBUG) {
+                        error_log('Carpeta no activa detectada (no eliminada): ' . $folder);
+
+                        // Verificar si hay archivos dentro
+                        $files = glob($folder . '/*');
+                        if (count($files) > 0) {
+                            error_log('La carpeta contiene ' . count($files) . ' archivos');
+                        }
+                    }
+                }
+            }
+        }
+
     }
- 
-    // PASO 3: Procesar imágenes y carpetas
-    $this->process_price_extras_images($listing_id, $extras);
-}
+
+    public function handle_price_extras_update($listing_id)
+    {
+        // Preparación
+        if (is_object($listing_id)) {
+            $listing_id = $listing_id->get_id();
+        }
+
+        // Intentar migrar imágenes temporales
+        $this->migrate_temp_images($listing_id);
+
+        //Obtener datos
+        $extras = get_post_meta($listing_id, 'hp_price_extras', true);
+
+        if (empty($extras) || !is_array($extras)) {
+            if (WP_DEBUG) {
+                error_log("No extras found for listing {$listing_id}");
+            }
+            return;
+        }
+
+        // Procesar imágenes y carpetas
+        $this->process_price_extras_images($listing_id, $extras);
+    }
 
 
-public function save_price_extras_images($post_id, $post, $update) {
-    /**************************************
-     * PASO 1: Verificaciones iniciales
-     **************************************/
-    if (WP_DEBUG) {
-        error_log('=== Starting save_price_extras_images ===');
-        error_log('Post ID: ' . $post_id);
-    }
- 
-    if ($post->post_type !== 'hp_listing' || !is_admin()) {
-        return;
-    }
- 
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-        return;
-    }
- 
-    if (!current_user_can('edit_post', $post_id)) {
-        return;
-    }
- 
-    /**************************************
-     * PASO 2: Obtención de datos
-     **************************************/
-    try {
-        // SOLUCIÓN: Llamar a migrate_temp_images antes de procesar
-        if (WP_DEBUG) {
-            error_log('Calling migrate_temp_images from admin save');
+    public function save_price_extras_images($post_id, $post, $update)
+    {
+        //Verificaciones iniciales
+
+        if ($post->post_type !== 'hp_listing' || !is_admin()) {
+            return;
         }
-        
-        // Esta es la línea clave que faltaba
-        $this->migrate_temp_images($post_id);
-        
-        $price_extras_from_post = isset($_POST['hp_price_extras']) ? $_POST['hp_price_extras'] : null;
-        $extras = $price_extras_from_post ?: get_post_meta($post_id, 'hp_price_extras', true);
- 
-        if (WP_DEBUG) {
-            error_log('Retrieved hp_price_extras:');
-            error_log(print_r($extras, true));
+
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
         }
- 
-        /**************************************
-         * PASO 3: Procesamiento
-         **************************************/
-        $this->process_price_extras_images($post_id, $extras);
- 
-        /**************************************
-         * PASO 4: Limpieza final
-         **************************************/
- 
-    } catch (Exception $e) {
-        if (WP_DEBUG) {
-            error_log('Error in save_price_extras_images: ' . $e->getMessage());
-            error_log($e->getTraceAsString());
+
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        //Obtencion de datos
+        try {
+
+            // Esta es la línea clave que faltaba
+            $this->migrate_temp_images($post_id);
+
+            $price_extras_from_post = isset($_POST['hp_price_extras']) ? $_POST['hp_price_extras'] : null;
+            $extras = $price_extras_from_post ?: get_post_meta($post_id, 'hp_price_extras', true);
+
+
+            //Procesar
+            $this->process_price_extras_images($post_id, $extras);
+
+        } catch (Exception $e) {
+            if (WP_DEBUG) {
+                error_log('Error in save_price_extras_images: ' . $e->getMessage());
+                error_log($e->getTraceAsString());
+            }
         }
     }
-}
 
     /**
      * Actualiza las URLs y metadatos de un attachment después del renombrado de carpeta
@@ -958,7 +780,6 @@ public function save_price_extras_images($post_id, $post, $update) {
         $listing_id = get_post_meta($attachment_id, 'price_extra_listing_id', true);
         $base_path = 'price-extras/' . $listing_id;
 
-        // 1. Actualizar _wp_attached_file
         $attached_file = get_post_meta($attachment_id, '_wp_attached_file', true);
         if ($attached_file) {
             $new_file = str_replace(
@@ -969,7 +790,6 @@ public function save_price_extras_images($post_id, $post, $update) {
             update_post_meta($attachment_id, '_wp_attached_file', $new_file);
         }
 
-        // 2. Actualizar metadata con todas las imágenes generadas
         $metadata = wp_get_attachment_metadata($attachment_id);
         if (!empty($metadata)) {
             // Actualizar archivo principal
@@ -981,7 +801,6 @@ public function save_price_extras_images($post_id, $post, $update) {
                 );
             }
 
-            // Actualizar todos los tamaños generados
             if (isset($metadata['sizes']) && is_array($metadata['sizes'])) {
                 foreach ($metadata['sizes'] as $size => $data) {
                     if (isset($data['file'])) {
@@ -995,7 +814,6 @@ public function save_price_extras_images($post_id, $post, $update) {
             wp_update_attachment_metadata($attachment_id, $metadata);
         }
 
-        // 3. Actualizar la URL en el post (guid)
         $attachment_post = get_post($attachment_id);
         if ($attachment_post) {
             global $wpdb;
@@ -1014,14 +832,11 @@ public function save_price_extras_images($post_id, $post, $update) {
             }
         }
 
-        // 4. Actualizar los metadatos específicos de extras
         update_post_meta($attachment_id, 'price_extra_id', $new_folder);
 
-        // 5. Limpiar caché de la imagen
         clean_attachment_cache($attachment_id);
     }
 
-    // Función auxiliar para obtener imágenes temporales
     private function get_temporary_images_for_listing($listing_id)
     {
         return get_posts([
@@ -1041,12 +856,8 @@ public function save_price_extras_images($post_id, $post, $update) {
         ]);
     }
 
-    // Función para mover imagen a nueva carpeta
     private function move_image_to_folder($image_id, $listing_id, $old_folder, $new_folder)
     {
-        if (WP_DEBUG) {
-            error_log("Moving image {$image_id} from {$old_folder} to {$new_folder}");
-        }
 
         $upload_dir = wp_upload_dir();
         $base_path = $upload_dir['basedir'] . '/price-extras/' . $listing_id;
@@ -1092,21 +903,15 @@ public function save_price_extras_images($post_id, $post, $update) {
         }
     }
 
-
-    // Función para limpiar imágenes temporales de un listing específico
     private function cleanup_temporary_images_for_listing($listing_id)
     {
         $temp_images = $this->get_temporary_images_for_listing($listing_id);
 
         foreach ($temp_images as $image) {
-            if (WP_DEBUG) {
-                error_log('Cleaning up temporary image: ' . $image->ID);
-            }
             wp_delete_attachment($image->ID, true);
         }
     }
 
-    // Función para actualizar metadatos del attachment
     private function update_attachment_metadata($attachment_id, $old_folder, $new_folder)
     {
         $metadata = wp_get_attachment_metadata($attachment_id);
@@ -1147,11 +952,6 @@ public function save_price_extras_images($post_id, $post, $update) {
 
             $forms[$form_name]['attributes']['enctype'] = 'multipart/form-data';
             $forms[$form_name]['attributes']['data-component'] = 'file-upload';
-
-            if (WP_DEBUG) {
-                error_log('=== Modifying Form: ' . $form_name . ' ===');
-                error_log(print_r($forms[$form_name], true));
-            }
         }
 
         return $forms;
@@ -1170,11 +970,6 @@ public function save_price_extras_images($post_id, $post, $update) {
             return $images;
         }
 
-        if (WP_DEBUG) {
-            error_log('=== Filtering Listing Images ===');
-            error_log('Original images: ' . print_r($images, true));
-        }
-
         // Asegurarse de que tenemos un array
         if (!is_array($images)) {
             $images = array($images);
@@ -1184,10 +979,6 @@ public function save_price_extras_images($post_id, $post, $update) {
         $filtered_images = array_filter($images, function ($image_id) {
             return !get_post_meta($image_id, '_price_extra_parent', true);
         });
-
-        if (WP_DEBUG) {
-            error_log('Filtered images: ' . print_r($filtered_images, true));
-        }
 
         return array_values($filtered_images);
     }
@@ -1205,11 +996,6 @@ public function save_price_extras_images($post_id, $post, $update) {
     public function filter_attachment_metadata($data, $attachment_id)
     {
         if (get_post_meta($attachment_id, 'price_extra_image', true)) {
-            if (WP_DEBUG) {
-                error_log('=== Filtering Attachment Metadata ===');
-                error_log('Attachment ID: ' . $attachment_id);
-                error_log('Original metadata: ' . print_r($data, true));
-            }
 
             // Si es una imagen de extra, excluirla de las galerías de HivePress
             if (isset($data['hp_listing_images'])) {
@@ -1226,19 +1012,12 @@ public function save_price_extras_images($post_id, $post, $update) {
                 }
             }
 
-            if (WP_DEBUG) {
-                error_log('Filtered metadata: ' . print_r($data, true));
-            }
         }
         return $data;
     }
 
     public function process_new_attachment($attachment_id)
     {
-        if (WP_DEBUG) {
-            error_log("=== Processing New Attachment ===");
-            error_log("Attachment ID: $attachment_id");
-        }
 
         $is_extra_image = get_post_meta($attachment_id, 'price_extra_image', true);
         if ($is_extra_image) {
@@ -1255,10 +1034,6 @@ public function save_price_extras_images($post_id, $post, $update) {
 
     public function process_edited_attachment($attachment_id)
     {
-        if (WP_DEBUG) {
-            error_log("=== Processing Edited Attachment ===");
-            error_log("Attachment ID: $attachment_id");
-        }
 
         $is_extra_image = get_post_meta($attachment_id, 'price_extra_image', true);
         if ($is_extra_image) {
@@ -1272,11 +1047,6 @@ public function save_price_extras_images($post_id, $post, $update) {
         $attachment_id = is_object($attachment) ? $attachment->get_id() : $attachment;
 
         if (get_post_meta($attachment_id, 'price_extra_image', true)) {
-            if (WP_DEBUG) {
-                error_log("=== Filtering Attachment URLs ===");
-                error_log("Attachment ID: $attachment_id");
-                error_log("Is Extra Image - Returning empty array");
-            }
             return [];
         }
         return $urls;
@@ -1288,31 +1058,17 @@ public function save_price_extras_images($post_id, $post, $update) {
             return $attachments;
         }
 
-        if (WP_DEBUG) {
-            error_log("=== Filtering Listing Attachments ===");
-            error_log("Before filtering: " . count($attachments));
-        }
 
         $filtered = array_filter($attachments, function ($attachment) {
             $attachment_id = is_object($attachment) ? $attachment->get_id() : $attachment;
             return !get_post_meta($attachment_id, 'price_extra_image', true);
         });
 
-        if (WP_DEBUG) {
-            error_log("After filtering: " . count($filtered));
-        }
-
         return $filtered;
     }
 
-    /**
-     * Configura los manejadores para el admin
-     */
     public function setup_admin_handlers()
     {
-        if (WP_DEBUG) {
-            error_log('Setting up admin handlers for Price Extras');
-        }
 
         // Asegurar que el formulario pueda manejar archivos
         add_action('post_edit_form_tag', function () {
@@ -1328,9 +1084,6 @@ public function save_price_extras_images($post_id, $post, $update) {
         });
     }
 
-    /**
-     * Encola scripts necesarios para el admin
-     */
     public function enqueue_admin_scripts($hook)
     {
         global $post;
@@ -1346,12 +1099,6 @@ public function save_price_extras_images($post_id, $post, $update) {
         }
     }
 
-    /**
-     * Filtra los tamaños de imagen para los extras
-     */
-    /**
-     * Filtra los tamaños de imagen para los extras
-     */
     public function filter_image_sizes($sizes, $metadata)
     {
         // El ID del attachment viene en los metadatos o podemos obtenerlo del contexto
@@ -1370,12 +1117,6 @@ public function save_price_extras_images($post_id, $post, $update) {
             return $sizes;
         }
 
-        if (WP_DEBUG) {
-            error_log('=== Filter Image Sizes ===');
-            error_log('Attachment ID: ' . $attachment_id);
-            error_log('Original sizes: ' . print_r($sizes, true));
-        }
-
         if (get_post_meta($attachment_id, 'price_extra_image', true)) {
             // Solo mantener nuestros tamaños personalizados
             $our_sizes = array(
@@ -1387,20 +1128,12 @@ public function save_price_extras_images($post_id, $post, $update) {
             // Filtrar tamaños nulos
             $our_sizes = array_filter($our_sizes);
 
-            if (WP_DEBUG) {
-                error_log('Filtered sizes for price extra image');
-                error_log('Final sizes: ' . print_r($our_sizes, true));
-            }
-
             return $our_sizes;
         }
 
         return $sizes;
     }
 
-    /**
-     * Filtra los nombres de tamaños de imagen
-     */
     public function filter_image_size_names($sizes)
     {
         $attachment_id = null;
@@ -1415,18 +1148,9 @@ public function save_price_extras_images($post_id, $post, $update) {
         }
 
         if ($attachment_id && get_post_meta($attachment_id, 'price_extra_image', true)) {
-            if (WP_DEBUG) {
-                error_log('=== Filtering Image Size Names ===');
-                error_log('Attachment ID: ' . $attachment_id);
-                error_log('Original sizes: ' . print_r($sizes, true));
-            }
 
             // Solo retornar nuestros tamaños
             $our_sizes = ['price-extra-thumbnail', 'price-extra-card', 'price-extra-popup'];
-
-            if (WP_DEBUG) {
-                error_log('Filtered size names: ' . print_r($our_sizes, true));
-            }
 
             return $our_sizes;
         }
@@ -1449,11 +1173,6 @@ public function save_price_extras_images($post_id, $post, $update) {
 
         if (!$attachment_id) {
             return $sizes;
-        }
-
-        if (WP_DEBUG) {
-            error_log('=== Restricting Image Sizes ===');
-            error_log('Attachment ID: ' . $attachment_id);
         }
 
         // Si es nuestra imagen, solo permitir nuestros tamaños
@@ -1491,10 +1210,6 @@ public function save_price_extras_images($post_id, $post, $update) {
                 ];
             }
 
-            if (WP_DEBUG) {
-                error_log('Restricted sizes: ' . print_r($our_sizes, true));
-            }
-
             return $our_sizes;
         }
 
@@ -1512,46 +1227,30 @@ public function save_price_extras_images($post_id, $post, $update) {
             );
     }
 
-    /**
- * Limpia imágenes huérfanas después de un período de seguridad
- */
-public function cleanup_orphaned_images() {
-    global $wpdb;
-    
-    // Obtener todas las imágenes marcadas como huérfanas hace más de 24 horas
-    $query = $wpdb->prepare(
-        "SELECT p.ID 
+    public function cleanup_orphaned_images()
+    {
+        global $wpdb;
+
+        // Obtener todas las imágenes marcadas como huérfanas hace más de 24 horas
+        $query = $wpdb->prepare(
+            "SELECT p.ID 
          FROM {$wpdb->prefix}posts p
          INNER JOIN {$wpdb->prefix}postmeta pm ON p.ID = pm.post_id
          WHERE p.post_type = 'attachment'
          AND pm.meta_key = 'price_extra_orphaned'
          AND pm.meta_value = '1'
          AND p.post_modified < %s",
-        date('Y-m-d H:i:s', strtotime('-24 hours'))
-    );
-    
-    $orphaned_images = $wpdb->get_col($query);
-    
-    if (WP_DEBUG) {
-        error_log('=== Iniciando limpieza de imágenes huérfanas ===');
-        error_log('Total de imágenes huérfanas a limpiar: ' . count($orphaned_images));
-    }
-    
-    foreach ($orphaned_images as $image_id) {
-        // Verificar una última vez si la imagen todavía está marcada como huérfana
-        if (get_post_meta($image_id, 'price_extra_orphaned', true) === '1') {
-            // Ahora sí podemos eliminar la imagen con seguridad
-            wp_delete_attachment($image_id, true);
-            
-            if (WP_DEBUG) {
-                error_log('Eliminada imagen huérfana: ' . $image_id);
+            date('Y-m-d H:i:s', strtotime('-24 hours'))
+        );
+
+        $orphaned_images = $wpdb->get_col($query);
+
+
+        foreach ($orphaned_images as $image_id) {
+            // Verificar una última vez si la imagen todavía está marcada como huérfana
+            if (get_post_meta($image_id, 'price_extra_orphaned', true) === '1') {
+                wp_delete_attachment($image_id, true);
             }
         }
     }
-    
-    if (WP_DEBUG) {
-        error_log('=== Limpieza de imágenes huérfanas completada ===');
-    }
-}
-
 }

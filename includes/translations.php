@@ -2,10 +2,8 @@
 // Exit if accessed directly.
 defined('ABSPATH') || exit;
 
-/**
- * Carga los archivos de traducción del plugin
- */
-function hpped_load_textdomain() {
+function hpped_load_textdomain()
+{
     load_plugin_textdomain(
         'hivepress-price-extras-description',
         false,
@@ -14,10 +12,8 @@ function hpped_load_textdomain() {
 }
 add_action('plugins_loaded', 'hpped_load_textdomain');
 
-/**
- * Contiene todas las cadenas traducibles para JavaScript
- */
-function hpped_get_js_translations() {
+function hpped_get_js_translations()
+{
     return [
         // Mensajes de error
         'uploadError' => __('Error uploading image', 'hivepress-price-extras-description'),
@@ -32,21 +28,21 @@ function hpped_get_js_translations() {
         'requiredExtra' => __('Required extra', 'hivepress-price-extras-description'),
         'requiredExtraCantRemove' => __('This is a required extra and cannot be removed.', 'hivepress-price-extras-description'),
         'noExtraFound' => __('Extra not found in booking form:', 'hivepress-price-extras-description'),
-        
+
         // Etiquetas y botones
         'addToBooking' => __('Add to booking', 'hivepress-price-extras-description'),
         'removeFromBooking' => __('Remove from booking', 'hivepress-price-extras-description'),
         'viewMore' => __('View more', 'hivepress-price-extras-description'),
         'selectImages' => __('Select Images', 'hivepress-price-extras-description'),
         'maxImagesLabel' => __('*Maximum %d images', 'hivepress-price-extras-description'),
-        
+
         // Popups
         'detailedInfo' => __('Detailed extra information', 'hivepress-price-extras-description'),
-        
+
         // No hay extras
         'noExtrasDescription' => __('No price extras with description for this listing.', 'hivepress-price-extras-description'),
         'listingNotFound' => __('Listing not found.', 'hivepress-price-extras-description'),
-        
+
         // Tipos de extras
         'perPlacePerDay' => __('per place per day', 'hivepress-price-extras-description'),
         'perPlace' => __('per place', 'hivepress-price-extras-description'),

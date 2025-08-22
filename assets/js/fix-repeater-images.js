@@ -74,7 +74,12 @@
                                 $input.attr('id', newId);
                                 $input.closest('label').attr('for', newId);
                             } else {
-                                $input.val('');
+                                // Preservar el valor de selects que tienen "variable_quantity" seleccionado
+                                if ($input.is('select') && $input.val() === 'variable_quantity') {
+                                    // Mantener el valor seleccionado
+                                } else {
+                                    $input.val('');
+                                }
                             }
                             
                             // Actualizar IDs para campos de selección

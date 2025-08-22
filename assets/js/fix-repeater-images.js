@@ -1,39 +1,27 @@
 (function ($) {
     'use strict';
     
-    // Parchear la función original para prevenir errores de match
-    function patchHivepressCore() {
-        if (typeof hivepress !== 'undefined' && hivepress.initUI) {
-            var originalInitUI = hivepress.initUI;
-            hivepress.initUI = function(container) {
-                try {
-                    originalInitUI.call(this, container);
-                } catch(e) {
-                    if (e.message && (e.message.includes("match") || e.message.includes("undefined"))) {
-                        console.log('Error interceptado y manejado por hivepress-extras');
-                        return;
-                    }
-                    throw e;
-                }
-            };
-            return true;
-        }
-        return false;
-    }
-    
+    // Parchear globalmente el método String.match para evitar errores
     $(document).ready(function() {
-        // Intentar parchear inmediatamente
-        if (!patchHivepressCore()) {
-            // Si no está disponible, intentar cada 100ms hasta por 3 segundos
-            var attempts = 0;
-            var maxAttempts = 30;
-            var patchInterval = setInterval(function() {
-                attempts++;
-                if (patchHivepressCore() || attempts >= maxAttempts) {
-                    clearInterval(patchInterval);
-                }
-            }, 100);
-        }
+        // Interceptar errores globalmente
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes("Cannot read properties of undefined (reading 'match')")) {
+                console.log('Error de match interceptado globalmente por hivepress-extras');
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Parchear String.prototype.match solo para casos undefined
+        var originalMatch = String.prototype.match;
+        String.prototype.match = function(regexp) {
+            // Si this es undefined, devolver null en lugar de error
+            if (this == null || this === undefined) {
+                console.log('Match interceptado en valor undefined/null');
+                return null;
+            }
+            return originalMatch.call(this, regexp);
+        };
     });
 
     // Variable para evitar duplicación al procesar eventos

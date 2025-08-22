@@ -252,9 +252,9 @@ function hpped_register_editing_assets()
     wp_enqueue_script(
         'hpped-fix-repeater-images',
         $plugin_url . 'assets/js/fix-repeater-images.js',
-        ['jquery', 'hivepress-core'],
+        ['jquery'],
         '1.0.0',
-        true
+        false
     );
 
     // Obtener el ID del listing de la URL

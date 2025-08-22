@@ -2,7 +2,7 @@
     'use strict';
     
     // Parchear la función original para prevenir errores de match
-    $(document).ready(function() {
+    function patchHivepressCore() {
         if (typeof hivepress !== 'undefined' && hivepress.initUI) {
             var originalInitUI = hivepress.initUI;
             hivepress.initUI = function(container) {
@@ -16,6 +16,23 @@
                     throw e;
                 }
             };
+            return true;
+        }
+        return false;
+    }
+    
+    $(document).ready(function() {
+        // Intentar parchear inmediatamente
+        if (!patchHivepressCore()) {
+            // Si no está disponible, intentar cada 100ms hasta por 3 segundos
+            var attempts = 0;
+            var maxAttempts = 30;
+            var patchInterval = setInterval(function() {
+                attempts++;
+                if (patchHivepressCore() || attempts >= maxAttempts) {
+                    clearInterval(patchInterval);
+                }
+            }, 100);
         }
     });
 

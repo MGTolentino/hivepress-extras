@@ -1,5 +1,23 @@
 (function ($) {
     'use strict';
+    
+    // Parchear la función original para prevenir errores de match
+    $(document).ready(function() {
+        if (typeof hivepress !== 'undefined' && hivepress.initUI) {
+            var originalInitUI = hivepress.initUI;
+            hivepress.initUI = function(container) {
+                try {
+                    originalInitUI.call(this, container);
+                } catch(e) {
+                    if (e.message && (e.message.includes("match") || e.message.includes("undefined"))) {
+                        console.log('Error interceptado y manejado por hivepress-extras');
+                        return;
+                    }
+                    throw e;
+                }
+            };
+        }
+    });
 
     // Variable para evitar duplicación al procesar eventos
     var processingClick = false;

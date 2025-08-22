@@ -90,6 +90,19 @@
                         var $input = $(this);
                         var name = $input.attr('name');
 
+                        // Corregir campos sin name válido
+                        if (!name || name === 'undefined' || name === '') {
+                            // Asignar un name temporal basado en el tipo de campo
+                            if ($input.is('select')) {
+                                name = 'temp_select_' + randomId;
+                                $input.attr('name', name);
+                            } else {
+                                name = 'temp_input_' + randomId;
+                                $input.attr('name', name);
+                            }
+                            console.log('Campo sin name corregido:', name);
+                        }
+
                         if (typeof name !== 'undefined' && name !== false) {
                             var matches = name && typeof name === 'string' ? name.match(/\[([^\]]+)\]/) : null;
 

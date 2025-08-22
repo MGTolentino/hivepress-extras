@@ -63,7 +63,7 @@
                         var name = $input.attr('name');
 
                         if (typeof name !== 'undefined' && name !== false) {
-                            var matches = name.match(/\[([^\]]+)\]/);
+                            var matches = name && typeof name === 'string' ? name.match(/\[([^\]]+)\]/) : null;
 
                             if (matches) {
                                 $input.attr('name', name.replace(matches[1], randomId));

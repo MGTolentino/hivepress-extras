@@ -1,43 +1,15 @@
 (function ($) {
     'use strict';
-    
-    // Parchear globalmente el método String.match para evitar errores
-    $(document).ready(function() {
-        // Interceptar errores globalmente
-        window.addEventListener('error', function(e) {
-            if (e.message && e.message.includes("Cannot read properties of undefined (reading 'match')")) {
-                console.log('Error de match interceptado globalmente por hivepress-extras');
-                e.preventDefault();
-                return false;
-            }
-        });
-        
-        // Parchear String.prototype.match para simular resultado esperado
-        var originalMatch = String.prototype.match;
-        String.prototype.match = function(regexp) {
-            // Si this es undefined, simular el patrón esperado para campos de formulario
-            if (this == null || this === undefined) {
-                console.log('Match interceptado - simulando resultado para continuar flujo');
-                // Simular el resultado esperado: [match_completo, grupo_capturado]
-                if (regexp && regexp.toString().includes('\\[([^\\]]+)\\]')) {
-                    return ['[0]', '0']; // Simula name="algo[0]" con índice "0"
-                }
-                return null;
-            }
-            return originalMatch.call(this, regexp);
-        };
-    });
 
     // Variable para evitar duplicación al procesar eventos
     var processingClick = false;
 
     function fixRepeaterImageField() {
-        // Remover TODOS los eventos del repeater
-        $(document).off('click', '[data-component="repeater"] [data-add]');
+        // Remover el evento original de HivePress para el botón de añadir
+        $(document).off('click.customRepeater', '[data-component="repeater"] [data-add]');
         
-        // Añadir nuestro manejador personalizado con la máxima prioridad
+        // Añadir nuestro manejador personalizado
         $(document).on('click.customRepeater', '[data-component="repeater"] [data-add]', function (e) {
-            e.stopImmediatePropagation();
             // Evitar procesamiento duplicado
             if (processingClick) return;
             processingClick = true;
@@ -90,21 +62,8 @@
                         var $input = $(this);
                         var name = $input.attr('name');
 
-                        // Corregir campos sin name válido
-                        if (!name || name === 'undefined' || name === '') {
-                            // Asignar un name temporal basado en el tipo de campo
-                            if ($input.is('select')) {
-                                name = 'temp_select_' + randomId;
-                                $input.attr('name', name);
-                            } else {
-                                name = 'temp_input_' + randomId;
-                                $input.attr('name', name);
-                            }
-                            console.log('Campo sin name corregido:', name);
-                        }
-
                         if (typeof name !== 'undefined' && name !== false) {
-                            var matches = name && typeof name === 'string' ? name.match(/\[([^\]]+)\]/) : null;
+                            var matches = name.match(/\[([^\]]+)\]/);
 
                             if (matches) {
                                 $input.attr('name', name.replace(matches[1], randomId));

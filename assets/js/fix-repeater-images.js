@@ -40,11 +40,12 @@
     var processingClick = false;
 
     function fixRepeaterImageField() {
-        // Remover el evento original de HivePress para el botón de añadir
-        $(document).off('click.customRepeater', '[data-component="repeater"] [data-add]');
+        // Remover TODOS los eventos del repeater
+        $(document).off('click', '[data-component="repeater"] [data-add]');
         
-        // Añadir nuestro manejador personalizado
+        // Añadir nuestro manejador personalizado con la máxima prioridad
         $(document).on('click.customRepeater', '[data-component="repeater"] [data-add]', function (e) {
+            e.stopImmediatePropagation();
             // Evitar procesamiento duplicado
             if (processingClick) return;
             processingClick = true;

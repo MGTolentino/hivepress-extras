@@ -62,11 +62,31 @@
                         var $input = $(this);
                         var name = $input.attr('name');
 
-                        if (typeof name !== 'undefined' && name !== false) {
-                            var matches = name.match(/\[([^\]]+)\]/);
+                        // IMPORTANTE: Verificar que name existe y es string antes de usar match
+                        if (typeof name === 'string' && name !== '') {
+                            // Usar try-catch para evitar errores con match
+                            try {
+                                var matches = name.match(/\[([^\]]+)\]/);
 
-                            if (matches) {
-                                $input.attr('name', name.replace(matches[1], randomId));
+                                if (matches && matches[1]) {
+                                    $input.attr('name', name.replace(matches[1], randomId));
+                                    
+                                    // Actualizar IDs para campos de selección
+                                    if ($input.is('select')) {
+                                        var oldId = $input.attr('id');
+                                        if (oldId && matches) {
+                                            var newId = oldId.replace(matches[1], randomId);
+                                            $input.attr('id', newId);
+                                        }
+                                    }
+                                }
+                            } catch (err) {
+                                console.warn('Error procesando campo:', err);
+                                // Si hay error, asignar un name genérico basado en el tipo de campo
+                                if (!name) {
+                                    var fieldType = $input.is('select') ? 'select' : ($input.attr('type') || 'input');
+                                    $input.attr('name', 'price_extras[' + randomId + '][' + fieldType + ']');
+                                }
                             }
 
                             if ($input.attr('type') === 'checkbox') {
@@ -74,21 +94,18 @@
                                 $input.attr('id', newId);
                                 $input.closest('label').attr('for', newId);
                             } else {
-                                // Preservar el valor de selects que tienen "variable_quantity" seleccionado
-                                if ($input.is('select') && $input.val() === 'variable_quantity') {
-                                    // Mantener el valor seleccionado
-                                } else {
+                                // NO borrar el valor de selects con "variable_quantity"
+                                if (!($input.is('select') && $input.val() === 'variable_quantity')) {
                                     $input.val('');
                                 }
                             }
-                            
-                            // Actualizar IDs para campos de selección
-                            if ($input.is('select')) {
-                                var oldId = $input.attr('id');
-                                if (oldId) {
-                                    var newId = oldId.replace(matches[1], randomId);
-                                    $input.attr('id', newId);
-                                }
+                        } else if (!name) {
+                            // Si no tiene name, crear uno basado en el contexto
+                            var $parent = $input.closest('[data-name]');
+                            if ($parent.length) {
+                                var baseName = $parent.data('name') || 'price_extras';
+                                var fieldType = $input.is('select') ? 'type' : ($input.attr('type') || 'value');
+                                $input.attr('name', baseName + '[' + randomId + '][' + fieldType + ']');
                             }
                         }
                     });
